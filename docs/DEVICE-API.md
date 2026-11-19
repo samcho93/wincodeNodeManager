@@ -154,7 +154,7 @@ device type does not support the action.
 | `reboot` | — | all | Answer first, restart after 200 ms |
 | `factory` | `keepName` (default true) | all | Defaults, but the network settings (and the name) are kept |
 | `test` | `port` (0-based), `pattern` | edmx, pixel | `off` `red` `green` `blue` `white` `chase` `rainbow`; overrides network data on that port until `off` or reboot |
-| `home` | — | winch | Run to the top reference and set position 0 |
+| `home` | — | winch | Run to the top reference and set position 0; manual control until `release` |
 | `jog` | `dir` −1 · 0 · 1 | winch | Move while held at 40 % of `speedMax`; the manager repeats nothing, so stop on `dir: 0` **and** after 1 s without a new jog |
 | `goto` | `position` (mm) | winch | Manual target; DMX is ignored |
 | `stop` | — | winch, hub | Stop where it is / stop playback or recording |

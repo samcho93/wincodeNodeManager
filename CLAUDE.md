@@ -14,8 +14,8 @@ Sister projects: `D:\Work\Web\wincodeMovingHead` (simulator), `D:\Work\Web\winco
 - `web/js/main.js` — one draw function per tab. The detail pane keeps a draft (`S.draft`); only **Apply** writes. The 1 s refresh redraws the status box only, so that typing is not interrupted.
 
 ## Rules
-- All user-visible text and code comments are English. The one exception is the Korean manual (`web/manual/ko.html`).
-- Manual: `web/manual/en.html` and `ko.html` are kept in step (same chapters, same screenshots in `img/`). Screenshots are 1180×780 captures of the live page with the virtual fleet.
+- All user-visible text and code comments are English. The one exception is the Korean manual and tutorials (`web/manual/ko.html`, `tutorial-ko.html`).
+- Manual: `web/manual/en.html` and `ko.html` are kept in step (same chapters, same screenshots in `img/`); so are `tutorial-en.html` / `tutorial-ko.html` (six jobs on the virtual fleet, screenshots `img/t*.png`). Run a tutorial against the fleet again after changing what it touches. Screenshots are 1180×780 captures of the live page with the virtual fleet.
 - The devices are the source of truth; the manager stores nothing.
 - The API is versioned (`API_VERSION`): add fields, never change the meaning of one; unknown fields are ignored on both sides.
 - No device-model `if`s in the UI beyond the four types; a new model = a line in `MODELS`.

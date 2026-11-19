@@ -67,7 +67,7 @@ const server = http.createServer(async (req, res) => {
       const d = devices.get(m[1]); if (!d) return json(res, 404, { ok: false, error: 'unknown device' });
       const b = await readBody(req); if (!b) return json(res, 400, { ok: false, error: 'bad JSON' });
       if (m[2] === 'config' && req.method === 'PUT') { d.config = await call(d.url + '/api/config', { method: 'PUT', body: JSON.stringify(b) }); d.info = await call(d.url + '/api/info').catch(() => d.info); return json(res, 200, d.config); }
-      if (m[2] === 'action' && req.method === 'POST') { const r = await call(d.url + '/api/action', { method: 'POST', body: JSON.stringify(b) }); if (b.action === 'factory') d.config = await call(d.url + '/api/config').catch(() => d.config); return json(res, 200, r); }
+      if (m[2] === 'action' && req.method === 'POST') { const r = await call(d.url + '/api/action', { method: 'POST', body: JSON.stringify(b) }); d.config = await call(d.url + '/api/config').catch(() => d.config); d.status = await call(d.url + '/api/status').catch(() => d.status); return json(res, 200, r); }   // an action may change both (identify, factory, home …)
     }
     if (p.startsWith('/api/')) return json(res, 404, { ok: false, error: 'not found' });
   } catch (e) { return json(res, 502, { ok: false, error: e.message }); }

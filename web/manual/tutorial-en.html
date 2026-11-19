@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wincode Node Manager — Tutorials</title>
+<link rel="stylesheet" href="manual.css">
+</head>
+<body>
+<div class="wrap">
+<nav class="toc">
+  <div class="brand">WINCODE</div><div class="sub">Node Manager · Tutorials</div>
+  <div class="lang"><a class="on" href="tutorial-en.html">English</a><a href="tutorial-ko.html">한국어</a></div>
+  <a href="#before">Before you start</a>
+  <a href="#t1">1. A first look at the rig</a>
+  <a href="#t2">2. Set up the pixel truss</a>
+  <a href="#t3">3. Commission the winches</a>
+  <a href="#t4">4. A show without a console — the hub</a>
+  <a href="#t5">5. Find a fault during the show</a>
+  <a href="#t6">6. Backup, and putting a device right again</a>
+  <a href="#next">Where to go next</a>
+  <a href="en.html">← User manual</a>
+  <a href="../">← Open Node Manager</a>
+</nav>
+<main>
+<h1>Tutorials <small>Wincode Node Manager · learn by doing, with the example rig</small></h1>
+<p>Each tutorial is one complete job, one press at a time, on the <b>example rig</b>: the eight virtual devices the program starts with. Tutorials 1 to 4 follow each other, as they would on a real installation day; 5 and 6 can be done at any time. The <a href="en.html">user manual</a> is the reference for everything used here.</p>
+
+<h2 id="before">Before you start</h2>
+<ul>
+  <li>Start the program with <code>npm start</code> and open <a href="http://127.0.0.1:7760">http://127.0.0.1:7760</a>. The pill must say <span class="b">Live · manager server</span>. (The <a href="https://samcho93.github.io/wincodeNodeManager/">online demo</a> works too; there the pill says <i>Demo</i>.)</li>
+  <li><b>To start again from the beginning</b>, stop the program and run <code>npm start</code> again (in the demo: reload the page). The example rig returns to its starting state.</li>
+  <li>Names in <span class="b">boxes</span> are buttons on the screen. Names in <i>italics</i> are fields or what the screen says.</li>
+  <li>Changes in a <b>Configuration</b> box are sent only when you press <span class="b">Apply</span>. Buttons in <b>Commissioning tools</b> write at once.</li>
+</ul>
+<h3>The example rig</h3>
+<table>
+  <tr><th>Device</th><th>Model</th><th>Starts with</th></tr>
+  <tr><td>Stage left DMX</td><td>WN-DMX4 — 4 DMX ports</td><td>Universes 0–3</td></tr>
+  <tr><td>FOH DMX</td><td>WN-DMX2 — 2 DMX ports</td><td>Universes 4–5</td></tr>
+  <tr><td>Truss pixels A · B</td><td>WN-PIX4 — 4 pixel ports each</td><td>300 pixels per port; universes 20–27 and 28–35</td></tr>
+  <tr><td>Show hub</td><td>WN-HUB</td><td>Records universes 0 and 1; two presets</td></tr>
+  <tr><td>Winch 1 · 2 · 3</td><td>WN-WINCH</td><td>Position on universe 40, addresses 1, 5 and 9; pixels on universes 41–43</td></tr>
+</table>
+<p>Nobody is sending a show, so every virtual device behaves as if a console were sending slowly moving levels. That is why frame rates read 40 Hz and the winches travel up and down by themselves.</p>
+
+<h2 id="t1">1. A first look at the rig</h2>
+<p><b>You will:</b> see what is on the network, read a device's state, and find one device in the rig — the first five minutes on any site.</p>
+<ol class="steps">
+  <li><b>Read the top bar.</b> Right side: <span class="b">8 / 8 online</span> and <span class="b">No alarms</span>. Those two pills are the summary of the whole rig; if both are green, nothing needs you.</li>
+  <li><b>Open Monitor.</b> Eight cards. On the eDMX and pixel cards each port has a line: <i>P1 · U20</i>, a level bar and <i>40 Hz</i>. On the winch cards a green marker moves along a bar.</li>
+  <li><b>Open one device.</b> Click the card "Truss pixels A". You are now in <b>Devices</b> with that node selected. The table shows its four ports: port 1 listens to universes <i>20–21</i> — two universes, because 300 pixels need 900 channels.</li>
+  <li><b>Find it in the rig.</b> Press <span class="b">Identify</span>. The button turns orange and reads <i>◉ Identifying</i>: on a real rig, that box is now blinking. Press it again to stop.
+    <figure><img src="img/t1-identify.png" alt="Identify switched on"><figcaption>"Truss pixels A" identifying. The heading line gives its model, ID, firmware version and address.</figcaption></figure></li>
+  <li><b>Look at the whole picture.</b> Open <b>Universes</b>. The heading says <i>26 universes in use · 30 outputs</i>. This list is everything the console has to send to this rig.</li>
+  <li><b>Read the log.</b> Open <b>Event log</b>: eight lines <i>Found …</i>, one per device, with the address each was found at.</li>
+</ol>
+<p class="note"><b>What you learned.</b> Top bar for the summary, Monitor for the overview, Devices for one device, Universes for the patch, Event log for the history.</p>
+
+<h2 id="t2">2. Set up the pixel truss</h2>
+<p><b>You will:</b> configure one pixel node, copy it to the second, and give the whole rig clean universe numbers — and see a numbering mistake before it reaches the stage.</p>
+<p>The story: the strip on port 1 of each truss is longer than planned — 450 pixels, not 300 — and the power supplies are smaller than hoped, so brightness has to be limited to 80 %.</p>
+<ol class="steps">
+  <li><b>Select "Truss pixels A"</b> in <b>Devices</b> and scroll to <b>Configuration</b>.</li>
+  <li><b>Change port 1 to 450 pixels.</b> Type 450 in <i>Pixels</i> on the first row. <i>Needs</i> changes from <i>900 ch · 2 univ.</i> to <i>1350 ch · 3 univ.</i>, and the box now says <b>● not applied</b>.</li>
+  <li><b>Limit the brightness.</b> Set <i>Limit %</i> to 80 on all four rows.</li>
+  <li><b>Press <span class="b">Apply</span>.</b> The box returns to <i>in sync with the device</i>. In the state table, port 1 now reads <i>20–22</i>.
+    <figure><img src="img/t2-applied.png" alt="Pixel node after Apply"><figcaption>After Apply: port 1 uses universes 20–22 — but port 2 still starts at 22.</figcaption></figure></li>
+  <li><b>Spot the mistake.</b> Open <b>Universes</b>. Universe 22 appears twice, marked <i>shared by 2 outputs</i>: port 1 grew into the universe that port 2 uses. On stage, the start of strip 2 would repeat the end of strip 1. Do not fix it by hand — step 7 does it for the whole rig.</li>
+  <li><b>Copy the node.</b> Go back to <b>Devices</b> and tick the checkbox of "Truss pixels B". Open <b>Commissioning tools</b>. Under <i>Copy a configuration</i> choose <i>Truss pixels A (WN-PIX4)</i> and press <span class="b">Copy to the ticked devices of the same model</span>. Truss pixels B now has 450 pixels on port 1 and 80 % everywhere, and has kept its own name and address.
+    <figure><img src="img/t2-copy.png" alt="Copying a configuration"><figcaption>The top line says <i>1 ticked</i>: the tools work on Truss pixels B only.</figcaption></figure></li>
+  <li><b>Number the universes.</b> In <b>Devices</b> press <span class="b">None</span> — with nothing ticked, the tools work on every device. Back in <b>Commissioning tools</b>, leave <i>Start at</i> at 0 and <i>Protocol</i> at Art-Net, and press <span class="b">Number in list order</span>.</li>
+  <li><b>Check the result.</b> Open <b>Universes</b>: <i>28 universes in use · 32 outputs</i>, numbered without gaps. FOH DMX has 0–1, Stage left DMX 2–5, Truss pixels A 6–14, Truss pixels B 15–23, the winch lamps 24–26.
+    <figure><img src="img/t2-universes.png" alt="Universe map after numbering"><figcaption>After numbering. Port 1 of each truss carries <i>pixels 1/3, 2/3, 3/3</i>.</figcaption></figure></li>
+  <li><b>Read what is still shared.</b> Universes 0 and 1 are shared by FOH DMX and the Show hub — the hub records them, which is intended. Universe 40 is shared by the three winches — they read their positions from different addresses on it, also intended. Nothing else is shared.</li>
+</ol>
+<p class="note"><b>What you learned.</b> Set one device up, copy it, then number everything in one step. The Universes tab is where a clash shows — look at it after every change of pixel counts.</p>
+
+<h2 id="t3">3. Commission the winches</h2>
+<p><b>You will:</b> name the three winches, limit their travel and speed, and move one by hand before the console is connected.</p>
+<ol class="steps">
+  <li><b>Tick the three winches</b> in <b>Devices</b> (the checkboxes of Winch 1, 2 and 3).</li>
+  <li><b>Name them.</b> In <b>Commissioning tools</b>, under <i>Name the devices</i>, type <i>Atrium winch</i> as the prefix and press <span class="b">Rename</span>. The list now shows Atrium winch 1, 2 and 3.</li>
+  <li><b>Untick.</b> Back in <b>Devices</b> press <span class="b">None</span>, then select "Atrium winch 1".</li>
+  <li><b>Check the addresses.</b> In its configuration: <i>Universe</i> 40, <i>DMX address</i> 1. The other two have addresses 5 and 9 on the same universe. Each position takes two channels (coarse and fine), so they do not overlap. Write these down for the console patch.</li>
+  <li><b>Limit the travel.</b> The atrium is lower than the winch's cable is long. Set <i>Travel, bottom (mm)</i> to 3000. Now full DMX means 3 m below the top, and the winch never goes lower.</li>
+  <li><b>Make it gentle.</b> Set <i>Maximum speed (mm/s)</i> to 500 and <i>Acceleration (mm/s²)</i> to 300. Press <span class="b">Apply</span>.</li>
+  <li><b>Home it.</b> In <b>Manual control</b> press <span class="b">Home</span>. <i>Target</i> becomes 0 mm, the winch runs up, and <i>Homed</i> reads <i>yes</i>. From now on its position can be trusted.</li>
+  <li><b>Send it to a height.</b> In <i>Go to</i> type 1500 and press Enter. <i>Target</i> reads 1500 mm; <i>Position</i> follows, speeding up, running at no more than 500 mm/s, and braking before it arrives. On the bar the green marker moves to the yellow line.
+    <figure><img src="img/t3-winch.png" alt="Winch moving to a position by hand"><figcaption>"Atrium winch 1" on its way to 1500 mm under manual control.</figcaption></figure></li>
+  <li><b>Try the jog buttons.</b> Hold <span class="b">▼ Down (hold)</span> for two seconds and let go: the winch moves only while you hold. <span class="b">Stop</span> halts it wherever it is.</li>
+  <li><b>Give it back to the console.</b> Press <span class="b">Release to DMX</span>. The target jumps to whatever the console is sending and the winch follows it again.</li>
+  <li><b>Repeat for winches 2 and 3</b> — or, faster: tick them, and in <b>Commissioning tools</b> copy the configuration of "Atrium winch 1" to them. Then give each its own <i>DMX address</i> again (5 and 9), because the copy carries the address along.</li>
+</ol>
+<p class="note"><b>Remember Release to DMX.</b> A winch that was moved by hand stays under manual control — it ignores the console until you release it. This is the most common reason why "one winch does not follow the show".</p>
+
+<h2 id="t4">4. A show without a console — the hub</h2>
+<p><b>You will:</b> tell the hub what to record, record a preset, play it, and make it start by itself at power-up — an installation that runs unattended.</p>
+<ol class="steps">
+  <li><b>Select "Show hub"</b> in <b>Devices</b>. Its state shows <i>Playback: idle</i> and a table of the universes it listens to (0 and 1), each with 40 Hz.</li>
+  <li><b>Choose what to record.</b> The evening look uses the FOH lights (universes 0 and 1) and the first truss strip (6 and 7). In <b>Configuration</b>, set <i>Record universes</i> to <code>0, 1, 6, 7</code>.</li>
+  <li><b>Name the preset.</b> In <b>Presets</b>, change the name of preset 1 to <i>Evening loop</i> and its <i>Length s</i> to 20.</li>
+  <li><b>Press <span class="b">Apply</span>.</b> The table in the state now lists four universes, all receiving.</li>
+  <li><b>Record.</b> On a real job you would start the cue on the console now. Press <span class="b">● Record</span> on the <i>Evening loop</i> row. <i>Playback</i> reads <i>record</i> and <i>Preset</i> counts the seconds.
+    <figure><img src="img/t4-record.png" alt="Hub recording"><figcaption>Recording preset 1 from universes 0, 1, 6 and 7.</figcaption></figure></li>
+  <li><b>Stop.</b> After about twenty seconds press <span class="b">■</span>. <i>Playback</i> returns to <i>idle</i>.</li>
+  <li><b>Play it.</b> Press <span class="b">▶ Play</span> on the same row. <i>Playback</i> reads <i>play</i>; the seconds count to 20 and start again — a preset loops until you stop it.</li>
+  <li><b>Make it start by itself.</b> Under the preset table, set <i>Start on power-up</i> to <i>Evening loop</i> and press <span class="b">Apply</span>. Whenever the hub is switched on, it starts that preset without anyone touching it.
+    <figure><img src="img/t4-play.png" alt="Hub playing, power-up preset set"><figcaption>Playing <i>Evening loop</i>, which is also the power-up preset.</figcaption></figure></li>
+  <li><b>Add a push button.</b> At the bottom of <b>Configuration</b>, <i>Trigger inputs</i>: <i>Input 1 starts</i> → <i>Evening loop</i>, <i>Input 2 starts</i> → <i>Preset 2</i>. A wall button on input 2 now switches to the second look. Press <span class="b">Apply</span>.</li>
+  <li><b>See it in the map.</b> Open <b>Universes</b>: the hub appears on universes 0, 1, 6 and 7 as <i>recording input</i>, next to the outputs that show the same universes.</li>
+</ol>
+<p class="note"><b>The virtual hub</b> keeps the preset's name and length and reports its state, but it does not store or send real DMX frames; that is the job of the hardware. Everything you set here is what the real hub will be told.</p>
+
+<h2 id="t5">5. Find a fault during the show</h2>
+<p><b>You will:</b> see a device overheat, find it in seconds, and read what happened afterwards — the job of whoever watches the rig on show night.</p>
+<ol class="steps">
+  <li><b>Cause the fault.</b> Select "Stage left DMX" in <b>Devices</b> and press <span class="b">Simulate fault</span> (this button exists only on virtual devices). Its temperature starts to climb.</li>
+  <li><b>Watch from Monitor.</b> Open <b>Monitor</b> and wait about twenty seconds. The temperature bar of "Stage left DMX" turns yellow above 60 °C and red above 75 °C. Then the card gets a red frame and the line <i>⚠ Temperature 78 °C</i>, and the top bar changes to <span class="b">1 alarm</span>.
+    <figure><img src="img/t5-monitor.png" alt="Monitor with one alarm"><figcaption>One card out of eight is red — you see which device at a glance.</figcaption></figure></li>
+  <li><b>Go to the device.</b> Click the red card. You are in <b>Devices</b> with "Stage left DMX" selected; its row in the list has a yellow dot and <i>1 alarm</i>, and the alarm is written in red under the port table. Note that its four ports still read 40 Hz: it is hot, but it is still passing the show.
+    <figure><img src="img/t5-device.png" alt="The device with the alarm"><figcaption>The device behind the alarm: hot, but still receiving and sending.</figcaption></figure></li>
+  <li><b>End the fault.</b> Press <span class="b">Clear fault</span>. The temperature falls; below 75 °C the alarm disappears by itself and the top bar returns to <span class="b">No alarms</span>.</li>
+  <li><b>Lose a device.</b> Select "FOH DMX" and press <span class="b">Reboot</span>. After about three seconds without an answer the row turns grey with a red dot, the top bar reads <span class="b">7 / 8 online</span>, and a few seconds later the device is back.</li>
+  <li><b>Read the story.</b> Open <b>Event log</b>. Newest first: <i>FOH DMX is back online</i>, <i>FOH DMX is offline</i>, <i>Stage left DMX: alarms cleared</i>, <i>Stage left DMX: Temperature 75 °C</i> — each with its time.
+    <figure><img src="img/t5-log.png" alt="Event log after the faults"><figcaption>The log keeps what happened, also when nobody was looking.</figcaption></figure></li>
+</ol>
+<p class="note"><b>What you learned.</b> During a show, leave <b>Monitor</b> open and watch the two pills in the top bar. An alarm means "look at this device"; offline means "this device is gone". The log tells you when, and whether it has happened before.</p>
+
+<h2 id="t6">6. Backup, and putting a device right again</h2>
+<p><b>You will:</b> save the configuration of the whole rig, lose the settings of one device, and get them back with one file.</p>
+<ol class="steps">
+  <li><b>Take the backup.</b> In <b>Devices</b> press <span class="b">None</span> (nothing ticked = all devices). In <b>Commissioning tools</b> press <span class="b">Download backup</span>. The browser saves <code>wincode-nodes-<i>date</i>.json</code>. The log notes <i>Backup of 8 devices downloaded</i>.</li>
+  <li><b>Look at "Truss pixels B".</b> Select it in <b>Devices</b> and note its ports: 300 pixels each, universes 28, 30, 32 and 34 (or what tutorial 2 left there).</li>
+  <li><b>Lose the settings.</b> Press <span class="b">Factory reset</span> and confirm. The ports fall back to the defaults: 170 pixels, universes 0, 1, 2 and 3. The name and the IP address are kept — that is why the device is still in the list and still reachable.
+    <figure><img src="img/t6-factory.png" alt="After a factory reset"><figcaption>After the factory reset: default ports, but the same name and address.</figcaption></figure></li>
+  <li><b>See the damage.</b> Open <b>Universes</b>: universes 0–3 are now shared between the pixel node and the DMX nodes. This is what a rig looks like after someone "only pressed reset".</li>
+  <li><b>Restore.</b> In <b>Commissioning tools</b> press <span class="b">Restore from a backup…</span> and choose the file from step 1. The message reads <i>Restored 8 devices</i>.
+    <figure><img src="img/t6-restore.png" alt="Backup restored"><figcaption>The backup is written back to every device it finds on the network.</figcaption></figure></li>
+  <li><b>Check.</b> Select "Truss pixels B" again: 300 pixels, universes 28, 30, 32 and 34. For a second the device may show <i>No data on universe 28</i> — it has just started listening to that universe again; the alarm clears by itself.</li>
+</ol>
+<p class="note"><b>Replacing a broken device.</b> A backup is matched by device <b>ID</b>, and a replacement has a new ID, so Restore skips it and reports <i>1 not on the network</i>. For a replacement, use <i>Copy a configuration</i> from a device of the same model, then set its universes — or keep the backup file open as a reference for its values.</p>
+
+<h2 id="next">Where to go next</h2>
+<ul>
+  <li>The <a href="en.html">user manual</a> explains every field of every device type.</li>
+  <li>With a console or a DMX program on the same computer, send Art-Net to universe 40: the virtual winches follow your faders instead of their own movement (chapter 16 of the manual).</li>
+  <li>If you write firmware: the <a href="https://github.com/samcho93/wincodeNodeManager/blob/main/docs/DEVICE-API.md">device API specification</a> describes exactly what these tutorials did to the devices.</li>
+</ul>
+</main>
+</div>
+</body>
+</html>

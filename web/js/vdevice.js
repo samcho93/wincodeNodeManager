@@ -114,7 +114,7 @@ export class VDevice {
       case 'reboot': this.bootAt = this.t + 4; this.up = 0; this.rx.clear(); this.pattern = {}; return { ok: true };
       case 'factory': { const name = c.name, net = c.net; this.cfg = defaultConfig(this.model, 0); this.cfg.net = net; this.cfg.name = a.keepName === false ? this.cfg.name : name; return { ok: true }; }
       case 'test': if (!PATTERNS.includes(a.pattern)) return { ok: false, error: 'unknown pattern' }; if (a.pattern === 'off') delete this.pattern[a.port | 0]; else this.pattern[a.port | 0] = a.pattern; return { ok: true };
-      case 'home': if (this.type !== 'winch') break; this.jog = null; this.target = c.travel.min; this.homed = true; return { ok: true };
+      case 'home': if (this.type !== 'winch') break; this.jog = 0; this.target = c.travel.min; this.homed = true; return { ok: true };   // manual until 'release', like goto
       case 'jog': if (this.type !== 'winch') break; this.jog = clamp(+a.dir || 0, -1, 1) || null; return { ok: true };
       case 'goto': if (this.type !== 'winch') break; this.jog = 0; this.target = clamp(+a.position || 0, c.travel.min, c.travel.max); return { ok: true };
       case 'stop': if (this.type === 'winch') { this.jog = 0; this.target = this.pos; } if (this.type === 'hub') this.play = { state: 'idle', preset: 0, t: 0 }; return { ok: true };

@@ -56,7 +56,7 @@ function drawDetail() {
   const hold = (label, dir) => { const b = btn(label, null); b.addEventListener('pointerdown', () => api.action(d.id, { action: 'jog', dir }).catch(() => {})); for (const ev of ['pointerup', 'pointerleave']) b.addEventListener(ev, () => api.action(d.id, { action: 'jog', dir: 0 }).catch(() => {})); return b; };
 
   const parts = [h('div', { class: 'box' }, h('h4', null, `${TYPES[t].icon} ${TYPES[t].label}`, h('span', { class: 'spacer' }), h('span', { class: 'note' }, `${d.info.model} · ${d.id} · firmware ${d.info.fw} · ${d.url}`)),
-    h('div', { class: 'row' }, btn(c.identify ? '◉ Identifying' : 'Identify', () => act({ action: 'identify', on: !d.config.identify }), d.config.identify ? 'on' : '', 'Blink the device so that you can find it in the rig'),
+    h('div', { class: 'row' }, btn(d.status?.identify ? '◉ Identifying' : 'Identify', () => act({ action: 'identify', on: !d.status?.identify }), d.status?.identify ? 'on' : '', 'Blink the device so that you can find it in the rig'),
       btn('Reboot', () => confirm(`Reboot “${d.config.name}”?`) && act({ action: 'reboot' }, 'Rebooting')), btn('Factory reset', () => confirm('Reset every setting except the name and the network?') && run(async () => { await api.action(d.id, { action: 'factory' }); S.draft = null; }, 'Factory settings restored'), 'warn'),
       btn('Forget', () => run(async () => { await api.forget(d.id); S.sel = null; }, 'Removed from the list'), '', 'Remove from this list (the device itself is not changed)'),
       api.mode !== 'live' ? null : h('a', { class: 'btn', href: d.url, target: '_blank', title: 'The device\'s own page' }, 'Open device'),

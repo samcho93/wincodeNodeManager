@@ -8,7 +8,8 @@ the ESP32 firmware will: [docs/DEVICE-API.md](docs/DEVICE-API.md) is the firmwar
 [`web/js/vdevice.js`](web/js/vdevice.js) is its executable reference.
 
 **Try it:** https://samcho93.github.io/wincodeNodeManager/ (demo with in-page virtual devices) ·
-Manual: [English](https://samcho93.github.io/wincodeNodeManager/manual/en.html) · [한국어](https://samcho93.github.io/wincodeNodeManager/manual/ko.html)
+Manual: [English](https://samcho93.github.io/wincodeNodeManager/manual/en.html) · [한국어](https://samcho93.github.io/wincodeNodeManager/manual/ko.html) ·
+Tutorials: [English](https://samcho93.github.io/wincodeNodeManager/manual/tutorial-en.html) · [한국어](https://samcho93.github.io/wincodeNodeManager/manual/tutorial-ko.html)
 
 ## Run
 
