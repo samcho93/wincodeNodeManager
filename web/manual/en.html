@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wincode Node Manager — User Manual</title>
+<link rel="stylesheet" href="manual.css">
+</head>
+<body>
+<div class="wrap">
+<nav class="toc">
+  <div class="brand">WINCODE</div><div class="sub">Node Manager · User Manual</div>
+  <div class="lang"><a class="on" href="en.html">English</a><a href="ko.html">한국어</a></div>
+  <a href="#intro">1. What Node Manager is</a>
+  <a href="#start">2. Starting the program</a>
+  <a href="#screen">3. The screen</a>
+  <a href="#find">4. Finding devices</a>
+  <a href="#device">5. A device: state and commands</a>
+  <a href="#config">6. Changing a configuration</a>
+  <a href="#edmx">7. eDMX node</a>
+  <a href="#pixel">8. Pixel node</a>
+  <a href="#winch">9. Kinetic winch</a>
+  <a href="#hub">10. Hub</a>
+  <a href="#monitor">11. Monitor</a>
+  <a href="#universes">12. Universes</a>
+  <a href="#tools">13. Commissioning tools</a>
+  <a href="#log">14. Event log</a>
+  <a href="#alarms">15. Alarms</a>
+  <a href="#virtual">16. Virtual devices and demo mode</a>
+  <a href="#walk">17. Commissioning a rig, step by step</a>
+  <a href="#faq">18. Troubleshooting</a>
+  <a href="#dev">19. For firmware developers</a>
+  <a href="../">← Open Node Manager</a>
+</nav>
+<main>
+<h1>Wincode Node Manager <small>User Manual · configuration, commissioning and monitoring of lighting network nodes</small></h1>
+
+<h2 id="intro">1. What Node Manager is</h2>
+<p>Node Manager is the tool you use <b>before and during a show</b>, next to the lighting console. The console sends the show data (Art-Net or sACN). Node Manager looks after the boxes that receive it: it <b>finds</b> them on the network, <b>configures</b> them, sets up a whole rig in a few steps (<b>commissioning</b>) and <b>shows what every box is doing</b> while the show runs.</p>
+<p>It manages four kinds of Wincode device:</p>
+<table>
+  <tr><th>Device</th><th>Models</th><th>What it does</th></tr>
+  <tr><td><b>eDMX node</b></td><td>WN-DMX2 · WN-DMX4 · WN-DMX8</td><td>Converts Art-Net / sACN to DMX512 ports (or DMX back to the network).</td></tr>
+  <tr><td><b>Pixel node</b></td><td>WN-PIX4 · WN-PIX8</td><td>Drives addressable LED pixels (WS2812B, SK6812, APA102 …) from Art-Net / sACN.</td></tr>
+  <tr><td><b>Hub</b></td><td>WN-HUB</td><td>Records incoming universes and plays them back as presets, without a console.</td></tr>
+  <tr><td><b>Kinetic winch</b></td><td>WN-WINCH</td><td>A motorised winch that follows a 16-bit DMX position and carries a pixel lamp.</td></tr>
+</table>
+<figure><img src="img/01-devices.png" alt="Node Manager, whole window"><figcaption>The whole window: top bar, tabs, the device list on the left and the selected device on the right.</figcaption></figure>
+<p class="note"><b>The hardware is still being developed.</b> Until it exists, the program works with <b>virtual devices</b> that behave as the firmware will (chapter 16). Everything in this manual can be tried with them. Nothing here has been tested against real hardware yet.</p>
+
+<h2 id="start">2. Starting the program</h2>
+<h3>On your computer (the normal way)</h3>
+<p>You need <a href="https://nodejs.org/">Node.js</a> 18 or newer. Nothing else is installed.</p>
+<pre><code>git clone https://github.com/samcho93/wincodeNodeManager
+cd wincodeNodeManager
+npm start</code></pre>
+<p>Then open <a href="http://127.0.0.1:7760">http://127.0.0.1:7760</a> in Chrome or Edge.</p>
+<table>
+  <tr><th>Command</th><th>What starts</th><th>Use it when</th></tr>
+  <tr><td><code>npm start</code></td><td>The manager and eight virtual devices</td><td>Learning the program, development</td></tr>
+  <tr><td><code>npm run manager</code></td><td>The manager only</td><td>Working with real nodes</td></tr>
+  <tr><td><code>npm run virtual</code></td><td>The virtual devices only</td><td>Testing another tool against the device API</td></tr>
+</table>
+<h3>In the browser only (demo)</h3>
+<p>The page at <a href="https://samcho93.github.io/wincodeNodeManager/">samcho93.github.io/wincodeNodeManager</a> opens without any installation. A web page alone cannot search a network, so it runs the eight virtual devices inside the page. Every screen works; what you change is forgotten when the page is reloaded.</p>
+<h3>Live or demo?</h3>
+<p>The pill next to the name tells you which one you are in:</p>
+<table>
+  <tr><th>Pill</th><th>Meaning</th></tr>
+  <tr><td><span class="b">Live · manager server</span></td><td>The page talks to the manager server on your computer, which talks to the devices on the network.</td></tr>
+  <tr><td><span class="b">Demo · virtual devices in this page</span></td><td>No server was found. The devices are simulated inside the page.</td></tr>
+  <tr><td><span class="b">Manager server not reachable</span></td><td>The server was running and has stopped. Start it again; the page reconnects by itself.</td></tr>
+</table>
+
+<h2 id="screen">3. The screen</h2>
+<table>
+  <tr><th>Part</th><th>What it is for</th></tr>
+  <tr><td>Top bar, left</td><td>The mode pill, <span class="b">⟳ Scan</span> and <span class="b">+ Add by address</span> (chapter 4).</td></tr>
+  <tr><td>Top bar, right</td><td><span class="b">8 / 8 online</span> — how many known devices answer; red when one is missing. <span class="b">No alarms</span> — the number of alarms in the rig; red when there is one.</td></tr>
+  <tr><td>Tabs</td><td><b>Devices</b> · <b>Monitor</b> · <b>Universes</b> · <b>Commissioning tools</b> · <b>Event log</b>. On the right, a link to the device API specification.</td></tr>
+</table>
+<p>The program reads every device <b>once a second</b>. Numbers on the screen are therefore at most a second old.</p>
+<p>Each device type has its own colour, used on the left edge of list rows and the top edge of monitor cards: <b>blue</b> eDMX, <b>purple</b> pixel, <b>yellow</b> hub, <b>green</b> winch.</p>
+
+<h2 id="find">4. Finding devices</h2>
+<p>When the program starts it asks the network "who is there?" and repeats the question every ten seconds. Every Wincode node that hears it answers and appears in the list. You normally do nothing.</p>
+<table>
+  <tr><th>Button</th><th>What it does</th></tr>
+  <tr><td><span class="b">⟳ Scan</span></td><td>Asks again at once — after you plugged in a device and do not want to wait.</td></tr>
+  <tr><td><span class="b">+ Add by address</span></td><td>Adds one device by its IP address. Needed when the device is on <b>another subnet</b> (behind a router), where the search cannot reach. Not available in demo mode.</td></tr>
+  <tr><td><span class="b">Forget</span> (in the device)</td><td>Removes the device from the list. The device itself is not changed, and it comes back at the next scan if it is still on the network.</td></tr>
+</table>
+<figure><img src="img/10-add.png" alt="Add a device by address"><figcaption>Adding a device by address: type the IP address, or the full address with a port.</figcaption></figure>
+<h3>Online and offline</h3>
+<p>A device that does not answer three times in a row (about three seconds) is shown <b>offline</b>: greyed in the list, with a red dot. It stays in the list so that you can see <i>which</i> one is missing. When it answers again it turns online by itself and its configuration is read again. Both moments are written to the event log.</p>
+
+<h2 id="device">5. A device: state and commands</h2>
+<p>Open the <b>Devices</b> tab and click a device in the list. The right side shows three things: the <b>heading with commands</b>, the <b>live state</b>, and the <b>configuration</b>.</p>
+<h3>The list</h3>
+<p>Each row shows the type icon, the name, the model and address, a status dot (<b>green</b> OK, <b>yellow</b> alarm, <b>red</b> offline) and the temperature. The checkbox at the left <b>ticks</b> the device for the commissioning tools (chapter 13); <span class="b">All</span> and <span class="b">None</span> tick or clear every device.</p>
+<h3>Heading</h3>
+<p>The heading line gives the model, the device <b>ID</b> (for example <code>WNA1B311</code> — permanent, printed on the device, never changes), the firmware version and the address.</p>
+<table>
+  <tr><th>Button</th><th>What it does</th></tr>
+  <tr><td><span class="b">Identify</span></td><td>Makes the device blink so that you can find it in the rig. Press again to stop.</td></tr>
+  <tr><td><span class="b">Reboot</span></td><td>Restarts the device. It goes offline for a few seconds and comes back.</td></tr>
+  <tr><td><span class="b">Factory reset</span></td><td>Returns every setting to its default — <b>except the name and the network settings</b>, so the device stays reachable.</td></tr>
+  <tr><td><span class="b">Forget</span></td><td>Removes it from the list (chapter 4).</td></tr>
+  <tr><td><span class="b">Open device</span></td><td>Opens the device's own web address in a new tab (live mode).</td></tr>
+  <tr><td><span class="b">Simulate fault</span> · <span class="b">Clear fault</span></td><td>Only on virtual devices: make the device overheat, to see how alarms look.</td></tr>
+</table>
+<h3>Live state</h3>
+<p>Every device reports <b>state</b> (online, rebooting, offline), <b>temperature</b>, <b>supply</b> voltage and <b>uptime</b> (time since it started). Below that come the values of its type, described in chapters 7–10. Alarms are listed in red under the state.</p>
+
+<h2 id="config">6. Changing a configuration</h2>
+<p>The <b>Configuration</b> box shows the settings stored in the device. Changing a field changes only what is on the screen — <b>nothing is sent until you press Apply</b>.</p>
+<figure><img src="img/02-pixel.png" alt="A changed configuration that is not applied yet"><figcaption>The pixel count of port 2 was changed: the box says <b>● not applied</b> until Apply or Revert is pressed.</figcaption></figure>
+<table>
+  <tr><th>What you see</th><th>Meaning</th></tr>
+  <tr><td><i>in sync with the device</i></td><td>The screen shows exactly what the device has stored.</td></tr>
+  <tr><td><b>● not applied</b></td><td>You changed something that the device does not know yet.</td></tr>
+  <tr><td><span class="b">Apply</span></td><td>Sends the configuration. The device stores it and uses it at once, without a reboot, and answers with what it actually stored.</td></tr>
+  <tr><td><span class="b">Revert</span></td><td>Throws your changes away and shows the device's settings again.</td></tr>
+</table>
+<p>If you select another device while changes are not applied, the program asks whether to discard them.</p>
+<p class="note">A device checks every value. A number outside its range is brought back into range, and after Apply the screen shows the value the device accepted — not the one you typed.</p>
+<h3>General and network</h3>
+<table>
+  <tr><th>Field</th><th>Meaning</th></tr>
+  <tr><td>Name</td><td>How the device is called everywhere in the program. Use names that say <i>where</i> the device is: "Truss pixels A", "Stage left DMX".</td></tr>
+  <tr><td>DHCP</td><td>On: the device gets its address from the network. Off: it uses the three fields below.</td></tr>
+  <tr><td>IP address · Subnet mask · Gateway</td><td>The fixed address. With DHCP on they are the fallback when no address is given.</td></tr>
+</table>
+<p class="note">Changing the network settings can move the device to an address your computer cannot reach. Change them last, and check them twice.</p>
+
+<h2 id="edmx">7. eDMX node</h2>
+<p>An eDMX node has 2, 4 or 8 DMX ports. Each port is set on its own row.</p>
+<h3>State</h3>
+<table>
+  <tr><th>Column</th><th>Meaning</th></tr>
+  <tr><td>Universe</td><td>The universe the port listens to, or <i>off</i>.</td></tr>
+  <tr><td>Frames</td><td>Frames received in the last second. A console normally sends 30–44 Hz. <b>0 Hz with a red dot</b> = nothing arrives.</td></tr>
+  <tr><td>Level</td><td>The average level of the channels — a quick sign that the data is alive and changing.</td></tr>
+  <tr><td>Test</td><td>The test pattern running on the port, if any.</td></tr>
+</table>
+<h3>Configuration</h3>
+<table>
+  <tr><th>Field</th><th>Choices</th><th>Meaning</th></tr>
+  <tr><td>On</td><td>☑</td><td>Switches the port on or off.</td></tr>
+  <tr><td>Direction</td><td>Network → DMX · DMX → network</td><td>Output (the usual case), or input: DMX from a desk is sent to the network.</td></tr>
+  <tr><td>Protocol</td><td>Art-Net · sACN</td><td>Must match what the console sends.</td></tr>
+  <tr><td>Universe</td><td>0–63999</td><td>The universe number of this port.</td></tr>
+  <tr><td>Merge</td><td>HTP · LTP</td><td>When two consoles send the same universe: <b>HTP</b> the higher level wins, channel by channel; <b>LTP</b> the latest change wins.</td></tr>
+  <tr><td>Rate Hz</td><td>1–44</td><td>How often the DMX line is refreshed. Lower it for old fixtures that flicker at 44 Hz.</td></tr>
+  <tr><td>On signal loss</td><td>Hold last look · Blackout</td><td>What the port does when the network data stops.</td></tr>
+  <tr><td>RDM</td><td>☑</td><td>Allows RDM on this port. Switch it off for fixtures that misbehave with RDM.</td></tr>
+  <tr><td>Test</td><td>off · red · green · blue · white</td><td>Sends a test level on the port <b>at once</b> (no Apply), overriding the network until set to <i>off</i>.</td></tr>
+</table>
+
+<h2 id="pixel">8. Pixel node</h2>
+<p>A pixel node has 4 or 8 pixel outputs. One protocol is chosen for the whole node; everything else is per port.</p>
+<h3>State</h3>
+<p>As for the eDMX node, with two differences: <b>Universe</b> shows a range (<code>20–21</code>) when the port needs more than one universe, and <b>Current</b> estimates the current the strip draws at the present level.</p>
+<h3>Configuration</h3>
+<table>
+  <tr><th>Field</th><th>Choices</th><th>Meaning</th></tr>
+  <tr><td>Chip</td><td>WS2812B · WS2811 · SK6812 · SK6812-RGBW · APA102 · UCS2903</td><td>The LED type on the strip.</td></tr>
+  <tr><td>Order</td><td>GRB · RGB · BRG · RBG · GBR · BGR · GRBW · RGBW</td><td>The colour order of the chip. If red and green are swapped, this is the field.</td></tr>
+  <tr><td>Pixels</td><td>0–4096</td><td>How many pixels are connected.</td></tr>
+  <tr><td>Group</td><td>1–64</td><td>How many neighbouring pixels are controlled as one. Group 3 on 300 pixels = 100 controlled pixels, a third of the channels.</td></tr>
+  <tr><td>Universe · Start ch</td><td>0–63999 · 1–512</td><td>Where the first pixel is.</td></tr>
+  <tr><td>Needs</td><td><i>shown</i></td><td>The channels and universes this port needs with the present values — calculated for you.</td></tr>
+  <tr><td>Reverse</td><td>☑</td><td>The data enters at the far end of the strip.</td></tr>
+  <tr><td>Limit %</td><td>1–100</td><td>A brightness ceiling, to stay inside the power supply's capacity.</td></tr>
+  <tr><td>Gamma</td><td>1.0–3.0</td><td>Dimming curve. 2.2 gives smooth low levels; 1.0 is linear.</td></tr>
+  <tr><td>Test</td><td>off · red · green · blue · white · chase · rainbow</td><td>A test pattern on that output, at once.</td></tr>
+</table>
+<p class="note"><b>How many universes?</b> An RGB pixel uses 3 channels, so one universe holds 170 pixels (510 channels); an RGBW pixel uses 4, so 127 pixels. A pixel is never split over two universes. A port with 300 RGB pixels needs 900 channels = 2 universes, and uses the universe you set and the one after it. Leave that next number free — the <b>Universes</b> tab (chapter 12) shows clashes.</p>
+
+<h2 id="winch">9. Kinetic winch</h2>
+<p>A winch raises and lowers a lamp. The console sends a <b>position</b> as two DMX channels (16 bit); the winch moves there with its own speed and acceleration limits. It also carries a pixel output for the lamp.</p>
+<figure><img src="img/03-winch.png" alt="Kinetic winch: state and manual control"><figcaption>A winch moving to 3200 mm by hand. On the bar, the green marker is the position and the yellow line the target.</figcaption></figure>
+<h3>State</h3>
+<table>
+  <tr><th>Value</th><th>Meaning</th></tr>
+  <tr><td>Position · Target</td><td>Where the lamp is, and where it is going, in millimetres below the top.</td></tr>
+  <tr><td>Speed</td><td>mm/s. Positive = going down, negative = going up.</td></tr>
+  <tr><td>Load</td><td>How hard the motor works, in percent.</td></tr>
+  <tr><td>Homed</td><td><i>yes</i> once the winch has found its top reference since power-up. Until then its position is not trustworthy.</td></tr>
+  <tr><td>DMX in</td><td>Frames per second on its position universe.</td></tr>
+</table>
+<h3>Manual control</h3>
+<p>For setting up, before the console is connected or to check one winch.</p>
+<table>
+  <tr><th>Button</th><th>What it does</th></tr>
+  <tr><td><span class="b">Home</span></td><td>Runs to the top reference and sets the position to 0. Do this first after power-up.</td></tr>
+  <tr><td><span class="b">▲ Up (hold)</span> · <span class="b">▼ Down (hold)</span></td><td>Moves <b>while the button is held</b>, at 40 % of the maximum speed. Release to stop.</td></tr>
+  <tr><td><span class="b">Stop</span></td><td>Stops where it is.</td></tr>
+  <tr><td>Go to <i>… mm</i></td><td>Type a position and press Enter: the winch moves there.</td></tr>
+  <tr><td><span class="b">Release to DMX</span></td><td>Ends manual control. The winch follows the console again.</td></tr>
+</table>
+<p class="note"><b>Manual control wins over DMX.</b> After Home, jog, Stop or Go to, the winch ignores the console until you press <b>Release to DMX</b>. If a winch does not follow the show, this is the first thing to check.</p>
+<h3>Configuration</h3>
+<figure><img src="img/04-winch-config.png" alt="Winch configuration"><figcaption>The winch's settings: DMX address, travel, speed limits and the pixel output.</figcaption></figure>
+<table>
+  <tr><th>Field</th><th>Meaning</th></tr>
+  <tr><td>Protocol · Universe · DMX address</td><td>Where the position is read. It takes <b>two channels</b>: coarse at the address, fine at the next one. Several winches usually share one universe with different addresses.</td></tr>
+  <tr><td>Travel, top · bottom (mm)</td><td>The range of movement. DMX 0 = top, DMX full = bottom. Set <i>bottom</i> so that the lamp can never reach the floor or the audience.</td></tr>
+  <tr><td>Maximum speed (mm/s)</td><td>The winch never moves faster, whatever the console asks.</td></tr>
+  <tr><td>Acceleration (mm/s²)</td><td>How quickly it speeds up and brakes. Lower = softer movement, less swing of the lamp.</td></tr>
+  <tr><td>Invert direction</td><td>Swaps the two ends: DMX 0 = bottom.</td></tr>
+  <tr><td>On signal loss</td><td><i>Hold position</i> or <i>Go home</i> when the console's data stops.</td></tr>
+  <tr><td>Pixel output · universe · pixels · chip</td><td>The lamp on the winch: switch it on, give it its own universe, and say how many pixels of which type it has.</td></tr>
+</table>
+<p class="note"><b>Safety.</b> Moving loads above people are a mechanical-safety matter. The travel and speed limits in this program are operating settings, not a safety system; limit switches, load-rated rigging and the applicable regulations are what protect people.</p>
+
+<h2 id="hub">10. Hub</h2>
+<p>The hub records the show data it receives and plays it back later, so that an installation can run without a console.</p>
+<figure><img src="img/05-hub.png" alt="Hub: state and presets"><figcaption>The hub playing preset 1. The table shows the universes it would record, and that data is arriving on them.</figcaption></figure>
+<h3>State</h3>
+<table>
+  <tr><th>Value</th><th>Meaning</th></tr>
+  <tr><td>Playback</td><td><i>idle</i>, <i>play</i> or <i>record</i>.</td></tr>
+  <tr><td>Preset</td><td>Which preset, and how many seconds into it.</td></tr>
+  <tr><td>Recorded</td><td>Storage used by the presets.</td></tr>
+  <tr><td>Recording universe · Frames · Level</td><td>The universes the hub listens to, and whether data arrives on them.</td></tr>
+</table>
+<h3>Presets</h3>
+<table>
+  <tr><th>Control</th><th>What it does</th></tr>
+  <tr><td>Name · Length s</td><td>The preset's name and length in seconds. These are configuration: press <b>Apply</b> after changing them.</td></tr>
+  <tr><td><span class="b">▶ Play</span></td><td>Plays the preset in a loop.</td></tr>
+  <tr><td><span class="b">● Record</span></td><td>Records the incoming universes into this preset. Start the cue on the console, press Record, and press ■ when it is over.</td></tr>
+  <tr><td><span class="b">■</span></td><td>Stops playback or recording.</td></tr>
+  <tr><td><span class="b">✕</span> · <span class="b">+ Preset</span></td><td>Removes or adds a preset (then Apply).</td></tr>
+  <tr><td>Start on power-up</td><td>A preset that starts by itself when the hub is switched on — for installations that must run unattended.</td></tr>
+</table>
+<h3>Configuration</h3>
+<figure><img src="img/06-hub-config.png" alt="Hub configuration"><figcaption>The hub's recording settings and trigger inputs.</figcaption></figure>
+<table>
+  <tr><th>Field</th><th>Meaning</th></tr>
+  <tr><td>Record protocol</td><td>Art-Net or sACN.</td></tr>
+  <tr><td>Record universes</td><td>The universes to capture, separated by commas: <code>0, 1, 20, 21</code>.</td></tr>
+  <tr><td>Trigger inputs</td><td>The hub has contact inputs (a push button, a time switch). Choose which preset each input starts.</td></tr>
+</table>
+
+<h2 id="monitor">11. Monitor</h2>
+<p>The <b>Monitor</b> tab is the view to leave open during a show: one card per device, the whole rig on one screen.</p>
+<figure><img src="img/07-monitor.png" alt="Monitor tab"><figcaption>The monitor. "Truss pixels B" is overheating: red temperature bar, red frame, the alarm in words — and the alarm count in the top bar.</figcaption></figure>
+<table>
+  <tr><th>On a card</th><th>Meaning</th></tr>
+  <tr><td>Dot and name</td><td>Green OK · yellow alarm · red offline.</td></tr>
+  <tr><td>Temperature bar</td><td>Green up to 60 °C, yellow above, red above 75 °C.</td></tr>
+  <tr><td>P1 · U4 ▬▬ 40 Hz</td><td>eDMX and pixel nodes: per port, the universe, the level and the frame rate.</td></tr>
+  <tr><td>Position bar</td><td>Winches: position (green) and target (yellow), with the numbers below.</td></tr>
+  <tr><td>Playback</td><td>Hub: what it is playing or recording.</td></tr>
+  <tr><td>⚠ red line</td><td>The alarm, in words.</td></tr>
+</table>
+<p>Click a card to open that device in the <b>Devices</b> tab.</p>
+
+<h2 id="universes">12. Universes</h2>
+<p>The <b>Universes</b> tab lists every universe that any device listens to, sorted by number: which device, which port, what the universe carries there, and whether data is arriving.</p>
+<figure><img src="img/08-universes.png" alt="Universes tab"><figcaption>The universe map. Universes 0 and 1 are "shared by 2 outputs": the eDMX node sends them to DMX and the hub records them.</figcaption></figure>
+<p>Use it for three questions:</p>
+<ul>
+  <li><b>What do I patch on the console?</b> The list is exactly the set of universes the console has to send.</li>
+  <li><b>Did I number something twice?</b> A universe used by more than one output is marked <i>shared by … outputs</i>. That is allowed — two outputs then show the same data, and a hub recording a universe always shares it — but it is the usual sign of a numbering mistake.</li>
+  <li><b>Is the data arriving?</b> A red dot and 0 Hz on a row means that universe is not being sent, or not reaching that device.</li>
+</ul>
+
+<h2 id="tools">13. Commissioning tools</h2>
+<p>Commissioning is setting up a whole rig: dozens of devices that all need a name, universe numbers and the same settings. The tools do that in one step each.</p>
+<figure><img src="img/09-tools.png" alt="Commissioning tools"><figcaption>The commissioning tools, with three devices ticked.</figcaption></figure>
+<p class="note"><b>Which devices?</b> The tools work on the devices you <b>ticked</b> in the Devices list. With nothing ticked they work on <b>all</b> devices. The line at the top of the tab says which it is. Unlike the configuration box, the tools <b>write at once</b> — there is no Apply.</p>
+<table>
+  <tr><th>Tool</th><th>What it does</th></tr>
+  <tr><td><b>Number the universes</b></td><td>Gives every output its own universe, counting up from <i>Start at</i>, in the order of the list. An eDMX port takes one universe, a pixel port as many as its pixels need, a winch one for its pixel lamp (its position address is not changed). Hubs are skipped. All of them are set to the chosen protocol.</td></tr>
+  <tr><td><b>Name the devices</b></td><td>Names the devices <i>Prefix 1</i>, <i>Prefix 2</i> … in list order. Tick the three winches, type "Atrium winch", press Rename.</td></tr>
+  <tr><td><b>Copy a configuration</b></td><td>Copies the settings of one device to the ticked devices <b>of the same model</b> — everything except the name and the network settings. Set one pixel node up properly, then copy it to the others.</td></tr>
+  <tr><td><b>Find and restart</b></td><td><span class="b">Identify on</span> / <span class="b">Identify off</span> for all of them at once; <span class="b">Reboot</span> restarts them.</td></tr>
+  <tr><td><b>Backup and restore</b></td><td><span class="b">Download backup</span> saves the configuration of the devices as one file (<code>wincode-nodes-<i>date</i>.json</code>). <span class="b">Restore from a backup…</span> writes a file back; each device is matched by its ID and model, and devices that are not on the network are counted and reported.</td></tr>
+</table>
+<p class="note">Take a backup when the rig works. It is the fastest way back after someone "only changed one thing".</p>
+
+<h2 id="log">14. Event log</h2>
+<p>The <b>Event log</b> records what happened since the page was opened, newest first: devices found, devices going offline and coming back, alarms appearing and clearing, and what you applied or ran.</p>
+<figure><img src="img/11-log.png" alt="Event log"><figcaption>The event log. Green lines are normal events; problems are red.</figcaption></figure>
+<p>The log lives in the page: reloading the page or pressing <span class="b">Clear</span> empties it. It holds the latest 400 lines.</p>
+
+<h2 id="alarms">15. Alarms</h2>
+<p>A device raises an alarm by itself; the program shows it in the list (yellow dot), on the monitor card, in the device's state, in the top bar and in the log.</p>
+<table>
+  <tr><th>Alarm</th><th>Raised when</th><th>What to do</th></tr>
+  <tr><td>Temperature … °C</td><td>The device is hotter than 75 °C.</td><td>Check ventilation and the load; for a pixel node lower <i>Limit %</i>.</td></tr>
+  <tr><td>Supply … V</td><td>The supply is below 20 V.</td><td>Check the power supply and the cable length.</td></tr>
+  <tr><td>No data on universe …</td><td>An enabled output receives nothing.</td><td>Is the console sending that universe, with that protocol? Is the output's universe number right? Switch unused ports off.</td></tr>
+  <tr><td>Motor stalled</td><td>A winch motor is blocked.</td><td>Stop, look at the winch, remove the cause before moving again.</td></tr>
+</table>
+
+<h2 id="virtual">16. Virtual devices and demo mode</h2>
+<p>The virtual devices are small simulations of real nodes: they answer the network search, keep a configuration, warm up under load, receive universes and — the winches — move with speed and acceleration. The program cannot tell them from real ones, which is the point: they are what the firmware is being written against.</p>
+<table>
+  <tr><th>Virtual fleet</th><th>Devices</th></tr>
+  <tr><td>eDMX</td><td>Stage left DMX (WN-DMX4) · FOH DMX (WN-DMX2)</td></tr>
+  <tr><td>Pixel</td><td>Truss pixels A · Truss pixels B (WN-PIX4, 300 pixels per port)</td></tr>
+  <tr><td>Hub</td><td>Show hub</td></tr>
+  <tr><td>Winch</td><td>Winch 1 · 2 · 3, sharing one position universe</td></tr>
+</table>
+<ul>
+  <li><b>They make their own show data.</b> With no console, each virtual device behaves as if a console were sending moving levels, so frame rates and levels are alive and the winches travel slowly up and down.</li>
+  <li><b>A real console takes over.</b> With <code>npm start</code>, the virtual devices also listen for real Art-Net and sACN on your computer (when those ports are free). Send a universe from a console and the device that listens to it follows the console instead.</li>
+  <li><b>Faults on request.</b> <span class="b">Simulate fault</span> makes a virtual device overheat; within some seconds the temperature alarm appears. <span class="b">Clear fault</span> ends it.</li>
+  <li><b>Nothing is kept.</b> Restarting the program (or, in demo mode, reloading the page) returns the virtual fleet to its starting state.</li>
+</ul>
+
+<h2 id="walk">17. Commissioning a rig, step by step</h2>
+<p>A complete pass with the virtual fleet. It takes about ten minutes and uses every part of the program.</p>
+<ol class="steps">
+  <li><b>Start and look.</b> Run <code>npm start</code> and open the page. The pill says <i>Live</i>, the top bar says <i>8 / 8 online</i>. Open <b>Monitor</b>: eight cards, all with moving levels.</li>
+  <li><b>Find a device.</b> In <b>Devices</b>, click "Truss pixels A" and press <span class="b">Identify</span>. On a real rig that node now blinks. Press it again to stop.</li>
+  <li><b>Set one device up properly.</b> Still on "Truss pixels A": set port 1 to 450 pixels. <i>Needs</i> changes to "1350 ch · 3 univ." and the box says <b>● not applied</b>. Set <i>Limit %</i> to 80 on every port. Press <span class="b">Apply</span>.</li>
+  <li><b>Copy it.</b> Tick "Truss pixels B". Open <b>Commissioning tools</b>, choose "Truss pixels A" under <i>Copy a configuration</i> and press the copy button. Truss pixels B now has the same ports — with its own name and address.</li>
+  <li><b>Number the universes.</b> Go back to <b>Devices</b>, press <span class="b">None</span> so that the tools work on everything. In the tools, leave <i>Start at</i> at 0 and press <span class="b">Number in list order</span>.</li>
+  <li><b>Check the map.</b> Open <b>Universes</b>. Every output has its own number, in order. Only the hub's recording universes and the winches' shared position universe are marked <i>shared</i> — as intended. This list is what you patch on the console.</li>
+  <li><b>Name the winches.</b> Tick the three winches, and in the tools type the prefix "Atrium winch" and press <span class="b">Rename</span>.</li>
+  <li><b>Check a winch by hand.</b> Open "Atrium winch 1". Press <span class="b">Home</span>, then type 1500 in <i>Go to</i> and press Enter. Watch position follow target. Press <span class="b">Release to DMX</span> when you are done — otherwise it will not follow the show.</li>
+  <li><b>See an alarm.</b> Open "Truss pixels B" and press <span class="b">Simulate fault</span>. In <b>Monitor</b> its temperature climbs, the bar turns red and the top bar shows <i>1 alarm</i>. Press <span class="b">Clear fault</span>.</li>
+  <li><b>Take a backup.</b> In the tools, with nothing ticked, press <span class="b">Download backup</span>. Keep the file with the show.</li>
+  <li><b>Read the log.</b> Open <b>Event log</b>: everything you just did is there, with times.</li>
+</ol>
+
+<h2 id="faq">18. Troubleshooting</h2>
+<table>
+  <tr><th>Problem</th><th>Cause and remedy</th></tr>
+  <tr><td>The pill says <i>Demo</i> but I want real devices.</td><td>The page was opened without the manager server. Run <code>npm run manager</code> and open <a href="http://127.0.0.1:7760">http://127.0.0.1:7760</a> — not the web address.</td></tr>
+  <tr><td>A device is not found.</td><td>Is it powered and on the same network? Is your computer's address in the same subnet? A firewall may block the search (UDP port 7788) — allow Node.js on private networks. On another subnet, use <span class="b">+ Add by address</span>.</td></tr>
+  <tr><td>A device keeps going offline and online.</td><td>A bad cable or switch port, or an address used twice on the network. The event log shows how often it happens.</td></tr>
+  <tr><td>Frames show 0 Hz.</td><td>The console is not sending that universe, or sends the other protocol (Art-Net / sACN), or to another network interface. Compare with the <b>Universes</b> tab.</td></tr>
+  <tr><td>A winch does not follow the console.</td><td>It is in manual control — press <span class="b">Release to DMX</span>. Otherwise check its universe and DMX address, and <i>DMX in</i> in its state.</td></tr>
+  <tr><td>Colours are wrong on a pixel strip.</td><td>Set <i>Order</i> to match the chip. Use the red / green / blue test patterns: each must show its own colour.</td></tr>
+  <tr><td>The far end of a long strip is dim or pinkish.</td><td>Voltage drop, not a setting. Feed power in at both ends; <i>Limit %</i> reduces the effect.</td></tr>
+  <tr><td>I typed a value and Apply changed it.</td><td>It was outside the allowed range; the device stored the nearest allowed value.</td></tr>
+  <tr><td><i>Restore</i> says devices were not found.</td><td>A backup is matched by device ID. Those devices are not on the network now — or were replaced, and the new device has a new ID. Configure the replacement with <i>Copy a configuration</i> instead.</td></tr>
+  <tr><td>The page says <i>Manager server not reachable</i>.</td><td>The program on your computer was closed. Start it again.</td></tr>
+</table>
+
+<h2 id="dev">19. For firmware developers</h2>
+<p>Everything the program does with a device goes through a small, documented interface: a UDP search on port 7788 and four HTTP addresses on the device (<code>/api/info</code>, <code>/api/config</code>, <code>/api/status</code>, <code>/api/action</code>), all JSON.</p>
+<ul>
+  <li><a href="https://github.com/samcho93/wincodeNodeManager/blob/main/docs/DEVICE-API.md">Device API specification</a> — what the ESP32 firmware has to implement, field by field, with implementation notes.</li>
+  <li><a href="https://github.com/samcho93/wincodeNodeManager/blob/main/web/js/vdevice.js"><code>web/js/vdevice.js</code></a> — the virtual device, which is the executable form of that specification.</li>
+</ul>
+<p>A virtual device can be called directly while <code>npm start</code> runs:</p>
+<pre><code>curl http://127.0.0.1:7801/api/status
+curl -X POST http://127.0.0.1:7806/api/action -H "Content-Type: application/json" -d "{\"action\":\"home\"}"</code></pre>
+<p>Not in the program yet: firmware update over the network, and the list of RDM fixtures behind an eDMX port.</p>
+</main>
+</div>
+</body>
+</html>

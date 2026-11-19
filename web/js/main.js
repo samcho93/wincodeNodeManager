@@ -9,7 +9,7 @@ const S = { devs: [], sel: null, checked: new Set(), tab: 'devices', log: [], pr
 window.WNM = { api, S };                                       // for debugging from the console
 const dev = id => S.devs.find(d => d.id === id);
 const uptime = s => (s >= 86400 ? `${Math.floor(s / 86400)}d ${Math.floor(s % 86400 / 3600)}h` : s >= 3600 ? `${Math.floor(s / 3600)}h ${Math.floor(s % 3600 / 60)}m` : `${Math.floor(s / 60)}m ${s % 60}s`);
-const logEv = (text, cls = '') => { S.log.unshift({ at: new Date().toLocaleTimeString(), text, cls }); if (S.log.length > 400) S.log.pop(); };
+const logEv = (text, cls = '') => { S.log.unshift({ at: new Date().toLocaleTimeString('en-GB'), text, cls }); if (S.log.length > 400) S.log.pop(); };
 const run = async (fn, okText) => { try { const r = await fn(); if (okText) toast(okText); await refresh(true); return r; } catch (e) { toast(e.message, true); logEv(`Error: ${e.message}`, 'bad'); } };
 const tempBar = t => h('div', { class: 'bar ' + (t > 75 ? 'r' : t > 60 ? 'y' : 'g') }, h('i', { style: `width:${Math.min(100, t)}%` }));
 
@@ -117,7 +117,7 @@ function drawMonitor() {
 /* ── universes ── */
 function universeRows() {
   const rows = [];
-  for (const d of S.devs) if (d.config) for (const u of universesOf(d.info.type, d.config)) { const st = d.status || {}, p = (st.ports || [])[u.port - 1], fps = p ? p.fps : d.info.type === 'winch' ? (u.what === 'position' ? st.dmx?.fps : st.pixel?.fps) : 0; rows.push({ ...u, d, fps: fps || 0 }); }
+  for (const d of S.devs) if (d.config) for (const u of universesOf(d.info.type, d.config)) { const st = d.status || {}, p = (st.ports || [])[u.port - 1], fps = p ? p.fps : d.info.type === 'winch' ? (u.what === 'position' ? st.dmx?.fps : st.pixel?.fps) : d.info.type === 'hub' ? (st.rx || []).find(r => r.universe === u.universe)?.fps : 0; rows.push({ ...u, d, fps: fps || 0 }); }
   return rows.sort((a, b) => a.protocol.localeCompare(b.protocol) || a.universe - b.universe);
 }
 function drawUniverses() {

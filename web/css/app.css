@@ -44,3 +44,4 @@ td input[type=text] { width: 100%; min-width: 80px; } td input[type=number] { wi
 :root { color-scheme: dark; } .box { overflow-x: auto; } .box > h4 { flex-wrap: wrap; } .box > h4 .note { text-transform: none; letter-spacing: 0; }
 @media (max-width: 1000px) { .split { grid-template-columns: 1fr; height: auto; } .split > div { overflow: visible; } #list { max-height: 300px; overflow: auto !important; } }
 .form > input[type=checkbox] { justify-self: start; }
+#tabs a.hint { margin-left: 12px; }

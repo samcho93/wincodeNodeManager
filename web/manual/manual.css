@@ -1,0 +1,29 @@
+/* Wincode Node Manager — user manual */
+:root { --bg: #f7f8fa; --paper: #ffffff; --text: #1d2430; --dim: #5d6878; --line: #dfe3ea; --acc: #d86a00; --acc2: #0b6bcb; --code: #eef1f5; --note: #fff7e8; --noteb: #f0c36d; }
+@media (prefers-color-scheme: dark) { :root { --bg: #0e1116; --paper: #151a21; --text: #dde3ea; --dim: #96a1b0; --line: #2b3440; --acc: #ff8a1f; --acc2: #56a9ff; --code: #1d242d; --note: #2a2413; --noteb: #7a6226; } }
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.7 "Segoe UI", "Malgun Gothic", system-ui, sans-serif; }
+.wrap { display: grid; grid-template-columns: 270px minmax(0, 860px); gap: 32px; max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+nav.toc { position: sticky; top: 0; align-self: start; max-height: 100vh; overflow: auto; padding: 22px 0; font-size: 14px; }
+nav.toc .brand { font-weight: 700; letter-spacing: 3px; color: var(--acc); } nav.toc .sub { color: var(--dim); margin-bottom: 12px; }
+nav.toc a { display: block; color: var(--text); text-decoration: none; padding: 3px 8px; border-left: 2px solid transparent; }
+nav.toc a:hover { border-left-color: var(--acc); color: var(--acc); } nav.toc .lang { margin: 10px 0 14px; display: flex; gap: 6px; }
+nav.toc .lang a { border: 1px solid var(--line); border-radius: 4px; padding: 2px 10px; } nav.toc .lang a.on { border-color: var(--acc); color: var(--acc); }
+main { background: var(--paper); border-left: 1px solid var(--line); border-right: 1px solid var(--line); padding: 28px 40px 80px; min-width: 0; }
+h1 { font-size: 30px; margin: 0 0 4px; } h1 small { display: block; font-size: 15px; font-weight: 400; color: var(--dim); }
+h2 { font-size: 23px; margin: 52px 0 12px; padding-top: 14px; border-top: 1px solid var(--line); } h3 { font-size: 18px; margin: 28px 0 8px; }
+p { margin: 10px 0; } a { color: var(--acc2); }
+figure { margin: 18px 0; } figure img { display: block; max-width: 100%; border: 1px solid var(--line); border-radius: 8px; }
+figcaption { color: var(--dim); font-size: 14px; margin-top: 6px; }
+table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 15px; } th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .5px; }
+code, kbd { font: 14px Consolas, "D2Coding", monospace; background: var(--code); border-radius: 4px; padding: 1px 6px; } kbd { border: 1px solid var(--line); }
+pre { background: var(--code); border-radius: 8px; padding: 12px 14px; overflow: auto; } pre code { background: none; padding: 0; }
+.note { background: var(--note); border-left: 4px solid var(--noteb); border-radius: 4px; padding: 10px 14px; margin: 14px 0; }
+ol, ul { padding-left: 24px; } li { margin: 4px 0; }
+.steps { counter-reset: s; list-style: none; padding: 0; } .steps > li { counter-increment: s; position: relative; padding-left: 40px; margin: 12px 0; }
+.steps > li::before { content: counter(s); position: absolute; left: 0; top: 1px; width: 26px; height: 26px; border-radius: 50%; background: var(--acc); color: #fff; font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+.b { display: inline-block; border: 1px solid var(--line); border-radius: 4px; padding: 0 7px; font-size: 14px; background: var(--code); white-space: nowrap; }
+@media (max-width: 900px) { .wrap { grid-template-columns: 1fr; } nav.toc { position: static; max-height: none; } main { padding: 20px; border: 0; } }
+@media print { nav.toc { display: none; } .wrap { display: block; } main { border: 0; } h2 { break-before: page; } figure { break-inside: avoid; } }

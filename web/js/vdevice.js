@@ -31,6 +31,7 @@ export function universesOf(type, cfg) {
   if (type === 'edmx') cfg.ports.forEach((p, i) => { if (p.enabled) out.push({ universe: p.universe, protocol: p.protocol, port: i + 1, what: p.dir === 'in' ? 'DMX in' : 'DMX out' }); });
   if (type === 'pixel') cfg.ports.forEach((p, i) => { if (p.enabled) for (let k = 0; k < pixelUniverses(p); k++) out.push({ universe: p.universe + k, protocol: cfg.protocol, port: i + 1, what: `pixels ${k + 1}/${pixelUniverses(p)}` }); });
   if (type === 'winch') { out.push({ universe: cfg.universe, protocol: cfg.protocol, port: 1, what: 'position' }); if (cfg.pixel.enabled) out.push({ universe: cfg.pixel.universe, protocol: cfg.protocol, port: 1, what: 'pixels' }); }
+  if (type === 'hub') cfg.record.universes.forEach(u => out.push({ universe: u, protocol: cfg.record.protocol, port: '—', what: 'recording input' }));
   return out;
 }
 

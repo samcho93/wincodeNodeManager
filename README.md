@@ -7,6 +7,9 @@ The hardware is still being designed, so the program comes with **virtual device
 the ESP32 firmware will: [docs/DEVICE-API.md](docs/DEVICE-API.md) is the firmware specification, and
 [`web/js/vdevice.js`](web/js/vdevice.js) is its executable reference.
 
+**Try it:** https://samcho93.github.io/wincodeNodeManager/ (demo with in-page virtual devices) ·
+Manual: [English](https://samcho93.github.io/wincodeNodeManager/manual/en.html) · [한국어](https://samcho93.github.io/wincodeNodeManager/manual/ko.html)
+
 ## Run
 
 ```bash
