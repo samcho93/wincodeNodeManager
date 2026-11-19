@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wincode Node Manager</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<header id="bar">
+  <div class="brand"><span class="logo">WINCODE</span><span class="sub">Node Manager</span></div>
+  <span class="pill" id="modePill">—</span>
+  <button class="btn acc" id="btnScan" title="Look for devices on the network again">⟳ Scan</button>
+  <button class="btn" id="btnAdd" title="Add a device by its address when discovery cannot reach it">+ Add by address</button>
+  <span class="spacer"></span>
+  <span class="pill" id="countPill">—</span>
+  <span class="pill" id="alarmPill">—</span>
+</header>
+<nav id="tabs">
+  <button class="tab active" data-tab="devices">Devices</button>
+  <button class="tab" data-tab="monitor">Monitor</button>
+  <button class="tab" data-tab="universes">Universes</button>
+  <button class="tab" data-tab="tools">Commissioning tools</button>
+  <button class="tab" data-tab="log">Event log</button>
+  <span class="spacer"></span>
+  <a class="hint" href="docs/DEVICE-API.md" target="_blank" id="lnkSpec">Device API specification</a>
+</nav>
+<main>
+  <section class="pane active" id="tab-devices"><div class="split"><div id="list"></div><div id="detail"></div></div></section>
+  <section class="pane" id="tab-monitor"></section>
+  <section class="pane" id="tab-universes"></section>
+  <section class="pane" id="tab-tools"></section>
+  <section class="pane" id="tab-log"></section>
+</main>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

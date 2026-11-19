@@ -1,0 +1,12 @@
+{
+  "name": "wincode-node-manager",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Wincode Node Manager — configure, commission and monitor Wincode eDMX nodes, pixel nodes, hubs and kinetic winches",
+  "scripts": {
+    "start": "node server/index.mjs",
+    "manager": "node server/index.mjs --no-virtual",
+    "virtual": "node server/virtual.mjs"
+  }
+}
