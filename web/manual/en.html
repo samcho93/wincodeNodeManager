@@ -30,6 +30,7 @@
   <a href="#walk">17. Commissioning a rig, step by step</a>
   <a href="#faq">18. Troubleshooting</a>
   <a href="#dev">19. For firmware developers</a>
+  <a href="#sim">20. The Simulator tab</a>
   <a href="tutorial-en.html"><b>Tutorials →</b></a>
   <a href="../">← Open Node Manager</a>
 </nav>
@@ -356,6 +357,22 @@ npm start</code></pre>
 <pre><code>curl http://127.0.0.1:7801/api/status
 curl -X POST http://127.0.0.1:7806/api/action -H "Content-Type: application/json" -d "{\"action\":\"home\"}"</code></pre>
 <p>Not in the program yet: firmware update over the network, and the list of RDM fixtures behind an eDMX port.</p>
+<h2 id="sim">20. The Simulator tab</h2>
+<p>The <b>Simulator</b> tab shows what the virtual winches and pixel nodes do with the DMX they receive: winches move, their lamps and the pixel strips light in the colours that were sent. It is the picture of a rig before the hardware exists, and the reference for what the firmware has to do with the same data.</p>
+<figure><img src="img/20-simulator.png" alt="The Simulator tab with three winches and a pixel node"><figcaption>Three virtual winches and the first strips of a pixel node, playing the built-in pattern.</figcaption></figure>
+<table>
+  <tr><th>Part</th><th>What it shows</th></tr>
+  <tr><td>Kinetic winches</td><td>A front view of the rig with a ruler in metres. Each winch: its drum on the truss, the cable, the lamp with every pixel in its colour, the position and speed. The orange mark is the target the winch is running to; the grey marks are its travel limits. <i>manual</i> appears while the winch is under manual control (Home, Jog, Go to).</td></tr>
+  <tr><td>Pixel nodes</td><td>One box per node, one row of LEDs per port, each LED in the colour it has now. Group, reverse, the brightness limit and test patterns are applied, so the strip looks as the real one would.</td></tr>
+</table>
+<h3>Where the DMX comes from</h3>
+<table>
+  <tr><th>How the manager runs</th><th>What drives the virtual nodes</th></tr>
+  <tr><td>On your computer (<i>Live</i>)</td><td><b>Art-Net</b> on UDP 6454, sent to <code>127.0.0.2</code> or broadcast, and <b>sACN</b> on its multicast groups. The virtual nodes have the address 127.0.0.2 because 127.0.0.1 may already belong to the fixture simulator: on one computer only one program receives a packet sent to one address. In DMX Studio set the universe's output to Art-Net and its host to 127.0.0.2.</td></tr>
+  <tr><td>On the web (<i>Demo</i>)</td><td>The <b>Virtual DMX cable</b>: open DMX Studio or the DMX Editor from the same site in the same browser and set a universe's output to <i>Virtual DMX cable</i>.</td></tr>
+</table>
+<p>A node follows the universes it is set to (see <i>Universes</i>). A winch reads its position from two channels, coarse then fine, at its address; its lamp and a pixel port read red, green, blue (and white) per pixel from their universe. Until something sends a universe, a built-in pattern plays on it; it stops two seconds after real data arrives.</p>
+<div class="note">Only virtual devices are shown. A real node drives real outputs; the manager cannot see them. Change a setting in <i>Devices</i> — pixel count, group, travel, speed, acceleration — and the picture follows at once.</div>
 </main>
 </div>
 </body>

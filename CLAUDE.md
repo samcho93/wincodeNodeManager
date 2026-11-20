@@ -9,6 +9,8 @@ Sister projects: `D:\Work\Web\wincodeMovingHead` (simulator), `D:\Work\Web\winco
 
 ## Layout
 - `web/js/vdevice.js` — the device model (pure logic). It is the reference for the firmware: change it, `docs/DEVICE-API.md` and the forms in `main.js` together.
+- `web/js/sim.js` — the Simulator tab (winches and pixel strips drawn from `VDevice.frame()`, about 15 Hz; virtual devices only). DMX reaches the virtual nodes by Art-Net (also on 127.0.0.2) / sACN in `server/virtual.mjs`, and by `BroadcastChannel('wmh-dmx')` in demo mode (`api.js`).
+- Firmware and circuit diagrams live in `D:\Work\Web\wincodeNodeHardware`; it implements `docs/DEVICE-API.md` — change the two together.
 - `server/virtual.mjs` — wraps `VDevice` in HTTP + discovery. `server/index.mjs` — discovery, 1 Hz supervision, proxy `/api/dev/<id>/…`.
 - `web/js/api.js` — `live` (server) or `demo` (fleet inside the page); `main.js` must work with both.
 - `web/js/main.js` — one draw function per tab. The detail pane keeps a draft (`S.draft`); only **Apply** writes. The 1 s refresh redraws the status box only, so that typing is not interrupted.

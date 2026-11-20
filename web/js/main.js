@@ -2,6 +2,7 @@
 //  Devices are the source of truth: the page reads them once a second and writes a change only when you press Apply.
 import { connect } from './api.js';
 import { TYPES, CHIPS, ORDERS, PATTERNS, universesOf, pixelUniverses, pixelChannels } from './vdevice.js';
+import { drawSim, stopSim } from './sim.js';
 import { h, $, fill, btn, select, numInput, textInput, dialog, toast } from './ui.js';
 
 const api = await connect();
@@ -166,8 +167,8 @@ function drawTools() {
 function drawLog() { fill($('#tab-log'), h('div', { class: 'box' }, h('h4', null, 'Event log', h('span', { class: 'spacer' }), btn('Clear', () => { S.log.length = 0; drawLog(); }, 'small')), h('div', { class: 'log' }, S.log.map(l => h('div', { class: l.cls }, `${l.at}  ${l.text}`)), !S.log.length && h('p', { class: 'note' }, 'Nothing yet.')))); }
 
 /* ── shell ── */
-const DRAW = { devices: () => { drawList(); drawDetail(); }, monitor: drawMonitor, universes: drawUniverses, tools: drawTools, log: drawLog };
-function tab(name) { S.tab = name; document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x.dataset.tab === name)); document.querySelectorAll('.pane').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name)); DRAW[name](); }
+const DRAW = { devices: () => { drawList(); drawDetail(); }, sim: () => drawSim($('#tab-sim'), api, () => S.devs), monitor: drawMonitor, universes: drawUniverses, tools: drawTools, log: drawLog };
+function tab(name) { if (S.tab === 'sim' && name !== 'sim') stopSim(); S.tab = name; document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x.dataset.tab === name)); document.querySelectorAll('.pane').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name)); DRAW[name](); }
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => tab(t.dataset.tab)));
 $('#btnScan').addEventListener('click', () => run(() => api.scan(), 'Scanning…'));
 $('#btnAdd').addEventListener('click', () => { let url = ''; dialog('Add a device by address', b => fill(b, h('div', { class: 'form' }, h('span', null, 'Address'), textInput('', v => { url = v; }, { placeholder: '192.168.1.60  or  http://192.168.1.60:80' })),

@@ -47,7 +47,10 @@ browser  ──HTTP──▶  manager server (7760)  ──UDP 7788 discovery─
 
 A browser cannot broadcast or call devices on other origins; the small server does that and keeps no
 configuration of its own — the devices are the source of truth. The virtual devices also listen for Art-Net
-(6454) and sACN (5568) when those ports are free, so a real console moves the virtual winches.
+(6454, on every address and on their own `127.0.0.2`) and sACN (5568), so a real console moves the virtual winches
+and lights the virtual pixels. The **Simulator** tab shows it: winches running along a ruler with their lamps lit,
+pixel strips in the colours that were sent. On the web demo the nodes follow the Virtual DMX cable of DMX Studio
+instead. Circuit diagrams and ESP32 firmware for the real nodes: https://github.com/samcho93/wincodeNodeHardware
 
 ## Not done yet
 

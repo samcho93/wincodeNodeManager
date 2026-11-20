@@ -25,6 +25,23 @@ const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 /** DMX channels one pixel port needs, and how many universes that is (510 usable channels per universe keep pixels whole) */
 export const pixelChannels = p => Math.ceil((p.pixels || 0) / Math.max(1, p.group || 1)) * (CHIPS[p.chip] || 3);
 export const pixelUniverses = p => Math.max(1, Math.ceil(pixelChannels(p) / (Math.floor(510 / (CHIPS[p.chip] || 3)) * (CHIPS[p.chip] || 3))));
+/** The light of a pixel output as the eye sees it: Uint8Array of r, g, b per physical pixel.
+ *  p: { pixels, chip, group, universe, startChannel, reverse, limit }; data(universe) → the last DMX frame or null.
+ *  Channels arrive in R, G, B (, W) order; `order` only says how the chip wants them, so it does not change the colour.
+ *  pattern: a test pattern that overrides the data; t: seconds, for the moving patterns. */
+export function renderPixels(p, data, pattern, t = 0) {
+  const n = Math.max(0, p.pixels | 0), cpp = CHIPS[p.chip] || 3, g = Math.max(1, p.group || 1), per = Math.floor(510 / cpp), out = new Uint8Array(n * 3), lim = (p.limit ?? 100) / 100;
+  const first = Math.min(per, Math.floor((513 - (p.startChannel || 1)) / cpp));   // controlled pixels that fit into the first universe
+  const hue = h => { const k = x => { const a = (x + h * 6) % 6; return Math.max(0, Math.min(1, Math.min(a, 4 - a))) * 255; }; return [k(5), k(3), k(1)]; };
+  for (let i = 0; i < n; i++) {
+    const k = Math.floor(i / g); let c;
+    if (pattern) c = pattern === 'red' ? [255, 0, 0] : pattern === 'green' ? [0, 255, 0] : pattern === 'blue' ? [0, 0, 255] : pattern === 'white' ? [255, 255, 255] : pattern === 'chase' ? ((k + Math.floor(t * 12)) % 8 === 0 ? [255, 255, 255] : [0, 0, 0]) : hue(((k / 60 + t * 0.3) % 1 + 1) % 1);
+    else { const u = k < first ? 0 : 1 + Math.floor((k - first) / per), ch = k < first ? (p.startChannel || 1) - 1 + k * cpp : ((k - first) % per) * cpp, d = data(p.universe + u);
+      if (!d) c = [0, 0, 0]; else { const w = cpp === 4 ? d[ch + 3] || 0 : 0; c = [Math.min(255, (d[ch] || 0) + w), Math.min(255, (d[ch + 1] || 0) + w), Math.min(255, (d[ch + 2] || 0) + w)]; } }
+    const j = (p.reverse ? n - 1 - i : i) * 3; out[j] = c[0] * lim; out[j + 1] = c[1] * lim; out[j + 2] = c[2] * lim;
+  }
+  return out;
+}
 /** universes a device listens to: [{ universe, protocol, port, what }] */
 export function universesOf(type, cfg) {
   const out = [];
@@ -71,7 +88,7 @@ export class VDevice {
     if (this.bootAt && this.t < this.bootAt) return; this.bootAt = 0;
     const used = universesOf(this.type, this.cfg);
     if (this.sim) { this._acc = (this._acc || 0) + dt; while (this._acc >= 0.025) { this._acc -= 0.025;               // stand-in controller: 40 frames a second
-      for (const u of new Set(used.map(x => x.universe))) { const r = this.rx.get(u); if (r && this.t - r.real < 2) continue; const d = new Uint8Array(512), ph = this.t * 0.6 + u; for (let i = 0; i < 512; i++) d[i] = 128 + 127 * Math.sin(ph + i * 0.05); if (this.type === 'winch' && u === this.cfg.universe) { const v = Math.round((0.5 + 0.5 * Math.sin(this.t * 0.25 + this.cfg.address)) * 65535); d[this.cfg.address - 1] = v >> 8; d[this.cfg.address] = v & 255; } this.feed(u, d, false); } } }
+      for (const u of new Set(used.map(x => x.universe))) { const r = this.rx.get(u); if (r && this.t - r.real < 2) continue; const d = new Uint8Array(512), ph = this.t * 0.6 + u; for (let i = 0; i < 512; i++) d[i] = 128 + 127 * Math.sin(ph + Math.floor(i / 3) * 0.12 + (i % 3) * 2.1);   /* a slow rainbow when read as RGB pixels */ if (this.type === 'winch' && u === this.cfg.universe) { const v = Math.round((0.5 + 0.5 * Math.sin(this.t * 0.25 + this.cfg.address)) * 65535); d[this.cfg.address - 1] = v >> 8; d[this.cfg.address] = v & 255; } this.feed(u, d, false); } } }
     this._s = (this._s || 0) + dt; if (this._s >= 1) { for (const r of this.rx.values()) { r.fps = Math.round(r.n / this._s); r.n = 0; } this._s = 0; }
     let load = 0.2;
     if (this.type === 'winch') {
@@ -87,6 +104,17 @@ export class VDevice {
     if (this.type === 'hub' && this.play.state !== 'idle') { this.play.t += dt; const p = this.cfg.presets.find(x => x.id === this.play.preset); if (this.play.state === 'play' && p && this.play.t >= p.seconds) this.play.t = 0; }
     const goal = (this.fault === 'overtemp' ? 86 : 32) + load * 26;
     this.temp += (goal - this.temp) * Math.min(1, dt * 0.08);
+  }
+  /** What the device is doing right now, for a simulator view (virtual devices only; real firmware has no such call):
+   *   winch { type, position, target, speed, min, max, manual, pixels: Uint8Array rgb… }   mm and mm/s
+   *   pixel { type, ports: [{ enabled, pixels: Uint8Array rgb… }] } */
+  frame() {
+    const c = this.cfg, data = u => { const r = this.rx.get(u); return r && r.fps > 0 ? r.data : null; }, off = this.bootAt && this.t < this.bootAt;
+    const blink = c.identify && Math.floor(this.t * 3) % 2 ? 'white' : null;                       // identify: the output flashes
+    if (this.type === 'winch') return { type: 'winch', position: this.pos, target: this.target, speed: this.vel, min: c.travel.min, max: c.travel.max, manual: this.jog != null,
+      pixels: c.pixel.enabled && !off ? renderPixels({ pixels: c.pixel.pixels, chip: c.pixel.chip, universe: c.pixel.universe }, data, blink, this.t) : new Uint8Array(0) };
+    if (this.type === 'pixel') return { type: 'pixel', ports: c.ports.map((p, i) => ({ enabled: p.enabled, pixels: p.enabled && !off ? renderPixels(p, data, this.pattern[i] || blink, this.t) : new Uint8Array(0) })) };
+    return { type: this.type };
   }
   alarms() {
     const a = [];

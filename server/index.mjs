@@ -62,6 +62,8 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/scan' && req.method === 'POST') { scan(); return json(res, 200, { ok: true }); }
     if (p === '/api/add' && req.method === 'POST') { const b = await readBody(req); const d = await adopt(/^https?:\/\//.test(b.url) ? b.url : 'http://' + b.url); return json(res, 200, { ok: true, id: d.id }); }
     if (p === '/api/forget' && req.method === 'POST') { const b = await readBody(req); devices.delete(b.id); return json(res, 200, { ok: true }); }
+    const fm = /^\/api\/dev\/([^/]+)\/frame$/.exec(p);                                           // simulator view: virtual devices only
+    if (fm) { const d = devices.get(fm[1]); if (!d) return json(res, 404, { ok: false, error: 'unknown device' }); return json(res, 200, await call(d.url + '/api/frame', { timeout: 500 })); }
     const m = /^\/api\/dev\/([^/]+)\/(config|action)$/.exec(p);
     if (m) {
       const d = devices.get(m[1]); if (!d) return json(res, 404, { ok: false, error: 'unknown device' });

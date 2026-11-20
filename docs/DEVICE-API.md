@@ -162,6 +162,19 @@ device type does not support the action.
 | `play`, `record` | `preset` (id) | hub | |
 | `fault` | `kind` | virtual only | Simulation aid; real firmware answers 400 |
 
+### `GET /api/frame` — simulator picture (virtual devices only)
+
+Not part of the firmware: a real node answers 404. The virtual devices (`info.virtual: true`) answer with what their
+outputs do right now, for the manager's Simulator tab, read about 15 times a second:
+
+- **winch** `{ type, position, target, speed, min, max, manual, pixels }` — mm and mm/s.
+- **pixel** `{ type, ports[] { enabled, pixels } }`.
+
+`pixels` is base64 of `r, g, b` bytes, one triple per **physical** pixel, after `group`, `reverse`, `limit` and a test
+pattern — the colour the eye sees (`order` and `gamma` belong to the chip and do not change it). The mapping it
+implements is the one the firmware must use (`renderPixels()` in `vdevice.js`): channels arrive as R, G, B (, W) per
+controlled pixel; the first universe starts at `startChannel`, every following universe at channel 1.
+
 ## 4. Behaviour the manager relies on
 
 1. `id` is stable and unique; `name` may repeat.
