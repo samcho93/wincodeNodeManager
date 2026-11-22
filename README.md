@@ -1,5 +1,7 @@
 # Wincode Node Manager
 
+> Part of the **Wincode Lighting Suite** — all programs on one page: https://samcho93.github.io/wincodeSuite/
+
 Finds the Wincode nodes on a lighting network, configures them, commissions a whole rig and shows what every
 node is doing — eDMX nodes, pixel nodes, hubs and kinetic winches.
 
