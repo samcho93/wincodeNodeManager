@@ -134,7 +134,8 @@ universe number.
 Common: `id`, `uptime` (s), `tempC`, `vin` (V), `heap` (bytes free), `rebooting`, `net { ip, link, rssi }`,
 `identify`, `alarms[] { code, text }`.
 
-- **edmx** `ports[] { enabled, universe, fps, level, test }` — `fps` = frames received in the last second, `level` = mean channel level 0–100.
+- **edmx** `ports[] { enabled, universe, fps, level, test, sources, state }` — `fps` = frames received in the last second, `level` = mean channel level 0–100,
+  `sources` = senders live on the universe (they are merged), `state` = `live` · `hold` · `blackout` · `test` · `input` · `off` (optional: a manager that does not know them ignores them).
 - **pixel** `ports[] { enabled, universe, universes, pixels, fps, level, amps, test }`.
 - **winch** `position`, `target` (mm), `speed` (mm/s, signed), `moving`, `homed`, `load` (%), `dmx { fps, level }`, `pixel { fps, level } | null`.
 - **hub** `playback { state: idle|play|record, preset, t }`, `storage { used, total }` (bytes), `rx[] { universe, fps, level }`.
@@ -169,11 +170,21 @@ outputs do right now, for the manager's Simulator tab, read about 15 times a sec
 
 - **winch** `{ type, position, target, speed, min, max, manual, pixels }` — mm and mm/s.
 - **pixel** `{ type, ports[] { enabled, pixels } }`.
+- **edmx** `{ type, ports[] { enabled, dir, universe, merge, onLoss, rate, state, out, sources[] { name, fps } } }` — `out` = base64 of the 512
+  slots the port sends on its DMX line now.
 
 `pixels` is base64 of `r, g, b` bytes, one triple per **physical** pixel, after `group`, `reverse`, `limit` and a test
 pattern — the colour the eye sees (`order` and `gamma` belong to the chip and do not change it). The mapping it
 implements is the one the firmware must use (`renderPixels()` in `vdevice.js`): channels arrive as R, G, B (, W) per
 controlled pixel; the first universe starts at `startChannel`, every following universe at channel 1.
+
+### Merging and signal loss (edmx)
+
+A port keeps up to four senders of its universe apart (Art-Net: the sender's address, sACN: its CID). With one sender
+the port sends its frames; with more, `merge: htp` sends the highest value per channel and `ltp` the value that changed
+last. A sender that has sent nothing for 2.5 s is dropped; with none left, `onLoss: hold` keeps sending the last frame
+and `blackout` sends zeros. A port with `dir: in` listens on its DMX line and sends every frame to the network
+(ArtDmx broadcast, or sACN multicast to the universe). Reference: `liveSources()` and `edmxOut()` in `vdevice.js`.
 
 ## 4. Behaviour the manager relies on
 

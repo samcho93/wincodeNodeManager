@@ -6,7 +6,7 @@ import { demoFleet } from './vdevice.js';
 
 const bytes = s => Uint8Array.from(atob(s || ''), c => c.charCodeAt(0));
 /** a frame from a virtual device's /api/frame: pixel arrays arrive as base64 */
-const unpack = f => (f.type === 'winch' ? { ...f, pixels: bytes(f.pixels) } : f.type === 'pixel' ? { ...f, ports: f.ports.map(p => ({ ...p, pixels: bytes(p.pixels) })) } : f);
+const unpack = f => (f.type === 'winch' ? { ...f, pixels: bytes(f.pixels) } : f.type === 'pixel' ? { ...f, ports: f.ports.map(p => ({ ...p, pixels: bytes(p.pixels) })) } : f.type === 'edmx' ? { ...f, ports: f.ports.map(p => ({ ...p, out: bytes(p.out) })) } : f);
 
 const j = async (url, opt) => { const r = await fetch(url, opt ? { method: opt.method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(opt.body || {}) } : undefined); const x = await r.json().catch(() => ({})); if (!r.ok) throw new Error(x.error || `HTTP ${r.status}`); return x; };
 
@@ -26,7 +26,7 @@ function demo() {
   let fleet = demoFleet(true), last = performance.now();
   setInterval(() => { const now = performance.now(), dt = Math.min(0.2, (now - last) / 1000); last = now; for (const d of fleet) d.tick(dt); }, 50);
   // the Virtual DMX cable of the other Wincode programs (same browser, same site): what they send drives the demo fleet
-  try { new BroadcastChannel('wmh-dmx').onmessage = e => { const m = e.data; if (m && m.t === 'dmx' && m.data) { const d = Uint8Array.from(m.data); for (const x of fleet) x.feed(m.u ?? 0, d, true); } }; } catch (e) {}
+  try { new BroadcastChannel('wmh-dmx').onmessage = e => { const m = e.data; if (m && m.t === 'dmx' && m.data) { const d = Uint8Array.from(m.data); for (const x of fleet) x.feed(m.u ?? 0, d, true, 'Virtual DMX cable'); } }; } catch (e) {}
   const get = id => { const d = fleet.find(x => x.id === id); if (!d) throw new Error('unknown device'); return d; };
   return {
     mode: 'demo',

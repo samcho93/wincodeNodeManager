@@ -21,7 +21,7 @@ const body = req => new Promise(r => { let s = ''; req.on('data', c => { s += c;
 
 const b64 = u8 => Buffer.from(u8.buffer, u8.byteOffset, u8.byteLength).toString('base64');
 /** a frame with its pixel arrays as base64 */
-export const packFrame = f => (f.type === 'winch' ? { ...f, pixels: b64(f.pixels) } : f.type === 'pixel' ? { ...f, ports: f.ports.map(p => ({ ...p, pixels: b64(p.pixels) })) } : f);
+export const packFrame = f => (f.type === 'winch' ? { ...f, pixels: b64(f.pixels) } : f.type === 'pixel' ? { ...f, ports: f.ports.map(p => ({ ...p, pixels: b64(p.pixels) })) } : f.type === 'edmx' ? { ...f, ports: f.ports.map(p => ({ ...p, out: b64(p.out) })) } : f);
 
 export function startVirtual({ basePort = 7801, log = console.log } = {}) {
   const fleet = demoFleet(true), ports = new Map();
@@ -51,18 +51,18 @@ export function startVirtual({ basePort = 7801, log = console.log } = {}) {
   disc.bind(DISCOVERY_PORT);
 
   // real DMX traffic (best effort: another program may hold these ports)
-  const feed = (u, data) => { const copy = Uint8Array.from(data); for (const d of fleet) d.feed(u, copy, true); };
+  const feed = (u, data, source) => { const copy = Uint8Array.from(data); for (const d of fleet) d.feed(u, copy, true, source); };
   const art = dgram.createSocket({ type: 'udp4', reuseAddr: true });
   art.on('error', e => log('[virtual] Art-Net not available:', e.code || e.message));
-  art.on('message', m => { if (m.length > 18 && m.toString('latin1', 0, 7) === 'Art-Net' && m.readUInt16LE(8) === 0x5000) feed(m.readUInt16LE(14) & 0x7fff, m.subarray(18, 18 + m.readUInt16BE(16))); });
+  art.on('message', (m, r) => { if (m.length > 18 && m.toString('latin1', 0, 7) === 'Art-Net' && m.readUInt16LE(8) === 0x5000) feed(m.readUInt16LE(14) & 0x7fff, m.subarray(18, 18 + m.readUInt16BE(16)), `Art-Net ${r ? r.address : '?'}`); });   // a source per sender address
   art.bind(6454);
   const art2 = dgram.createSocket({ type: 'udp4', reuseAddr: true });                        // the virtual nodes' own address on this computer
   art2.on('error', e => log('[virtual] Art-Net on 127.0.0.2 not available:', e.code || e.message));
-  art2.on('message', m => art.emit('message', m));
+  art2.on('message', (m, r) => art.emit('message', m, r));
   art2.bind(6454, '127.0.0.2');
   const acn = dgram.createSocket({ type: 'udp4', reuseAddr: true });
   acn.on('error', e => log('[virtual] sACN not available:', e.code || e.message));
-  acn.on('message', m => { if (m.length > 126 && m.readUInt32BE(18) === 4) feed(m.readUInt16BE(113), m.subarray(126)); });
+  acn.on('message', m => { if (m.length > 126 && m.readUInt32BE(18) === 4) feed(m.readUInt16BE(113), m.subarray(126), `sACN ${m.toString('utf8', 44, 108).replace(/\0.*$/s, '') || m.subarray(22, 38).toString('hex').slice(0, 8)}`); });   // a source per sACN source name (or CID)
   acn.bind(5568, () => { for (let u = 1; u <= 64; u++) try { acn.addMembership(`239.255.${u >> 8}.${u & 255}`); } catch (e) {} });
 
   log(`[virtual] ${fleet.length} virtual nodes on http://127.0.0.1:${basePort}–${basePort + fleet.length - 1}, discovery on UDP ${DISCOVERY_PORT}`);

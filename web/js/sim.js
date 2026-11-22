@@ -1,4 +1,6 @@
-// sim.js — the Simulator tab: what the virtual winches and pixel nodes do with the DMX they receive.
+// sim.js — the Simulator tab: what the virtual winches, pixel nodes and eDMX nodes do with the DMX they receive.
+//  eDMX nodes: the 512 channels each port sends on its DMX line, after merging the sources (HTP / LTP) and the
+//  signal-loss behaviour (hold / blackout).
 //  Winches are drawn as a front view of the rig (drum, cable, the lamp with its pixels, target mark, a ruler in metres);
 //  pixel nodes as their strips, one row of LEDs per port. The picture comes from each device's frame (vdevice.js
 //  `frame()`), read about 15 times a second — real firmware has no such call, so only virtual devices are shown.
@@ -49,28 +51,49 @@ function drawStrips(cv, dev) {
   const want = Math.round(yy / d + 4); if (Math.abs(parseFloat(cv.style.height) - want) > 1) cv.style.height = want + 'px';   // as tall as its strips
 }
 
+/** eDMX node: per port the 512 channels it sends on its DMX line (32 × 16 cells, brightness = value) */
+const STATE = { live: ['#35c66b', 'sending'], hold: ['#f2c94c', 'signal lost — holding the last frame'], blackout: ['#e5484d', 'signal lost — blackout'], test: ['#2aa3ff', 'test pattern'], input: ['#8a94a2', 'DMX input — nothing to send'], off: ['#4a525e', 'off'] };
+function drawDmx(cv, dev) {
+  const d = size(cv), g = cv.getContext('2d'), W = cv.width, f = frames.get(dev.id); g.fillStyle = '#07090b'; g.fillRect(0, 0, W, cv.height); if (!f) return;
+  const cols = 32, cell = Math.max(10 * d, Math.min(22 * d, (W - 16 * d) / cols)), gridW = cell * cols; let y = 8 * d;
+  g.font = `${11 * d}px "Segoe UI", sans-serif`; g.textBaseline = 'top';
+  f.ports.forEach((p, i) => {
+    const [col, what] = STATE[p.state] || STATE.off;
+    g.fillStyle = col; g.beginPath(); g.arc(14 * d, y + 7 * d, 5 * d, 0, 6.3); g.fill();
+    g.fillStyle = '#dfe5ec'; g.textAlign = 'left'; g.fillText(`Port ${i + 1} · ${p.dir === 'in' ? 'DMX in' : 'DMX out'} · universe ${p.universe} · ${p.merge.toUpperCase()} · ${p.rate} Hz`, 26 * d, y);
+    g.fillStyle = DIM; g.fillText(`${what}${p.sources.length ? ' · from ' + p.sources.map(x => `${x.name} (${x.fps}/s)`).join(' + ') : ''}`, 26 * d, y + 15 * d); y += 34 * d;
+    for (let c = 0; c < 512; c++) { const v = p.out[c], x = 8 * d + (c % cols) * cell, yy = y + Math.floor(c / cols) * cell;
+      g.fillStyle = p.state === 'off' || p.state === 'input' ? '#101317' : `rgb(${20 + v * 0.9 | 0},${24 + v * 0.62 | 0},${30 + v * 0.18 | 0})`; g.fillRect(x, yy, cell - d, cell - d);
+      if (cell >= 18 * d && v) { g.fillStyle = v > 140 ? '#111' : '#dfe5ec'; g.textAlign = 'center'; g.font = `${8 * d}px "Segoe UI", sans-serif`; g.fillText(String(v), x + (cell - d) / 2, yy + cell * 0.3); g.font = `${11 * d}px "Segoe UI", sans-serif`; } }
+    g.textAlign = 'left'; g.fillStyle = DIM; for (let r = 0; r < 16; r += 4) g.fillText(String(r * cols + 1), gridW + 14 * d, y + r * cell);
+    y += 16 * cell + 14 * d;
+  });
+  const want = Math.round(y / d + 4); if (Math.abs(parseFloat(cv.style.height) - want) > 1) cv.style.height = want + 'px';
+}
+
 async function poll() {
   if (busy) return; busy = true;
-  try { await Promise.all(getDevs().filter(d => d.online && d.info.virtual && (d.info.type === 'winch' || d.info.type === 'pixel')).map(async d => { try { frames.set(d.id, await api.frame(d.id)); } catch (e) { frames.delete(d.id); } })); } finally { busy = false; }
+  try { await Promise.all(getDevs().filter(d => d.online && d.info.virtual && (d.info.type === 'winch' || d.info.type === 'pixel' || d.info.type === 'edmx')).map(async d => { try { frames.set(d.id, await api.frame(d.id)); } catch (e) { frames.delete(d.id); } })); } finally { busy = false; }
 }
 /** build (or keep) the Simulator tab; called again whenever the device list is refreshed */
 export function drawSim(pane, A, devs) {
   api = A; getDevs = devs;
-  const list = devs().filter(d => d.info.type === 'winch' || d.info.type === 'pixel'), virt = list.filter(d => d.info.virtual), sig = virt.map(d => d.id + d.online).join() + '|' + list.length;
+  const list = devs().filter(d => d.info.type === 'winch' || d.info.type === 'pixel' || d.info.type === 'edmx'), virt = list.filter(d => d.info.virtual), sig = virt.map(d => d.id + d.online).join() + '|' + list.length;
   if (sig !== built) {
     built = sig;
-    const winches = virt.filter(d => d.info.type === 'winch'), pix = virt.filter(d => d.info.type === 'pixel'), real = list.length - virt.length;
+    const winches = virt.filter(d => d.info.type === 'winch'), pix = virt.filter(d => d.info.type === 'pixel'), dmx = virt.filter(d => d.info.type === 'edmx'), real = list.length - virt.length;
     fill(pane,
       h('div', { class: 'box' }, h('h4', null, 'Where the DMX comes from'),
         h('p', { class: 'note' }, A.mode === 'live'
-          ? 'The virtual nodes on this computer take Art-Net on UDP 6454 — send it to 127.0.0.2 (their own address here; 127.0.0.1 may belong to the fixture simulator) or broadcast it — and sACN on its multicast groups. In DMX Studio: Setup → universe output Art-Net, host 127.0.0.2. Until a console sends a universe, a built-in pattern plays on it.'
-          : 'Demo mode: the virtual nodes in this page follow the Virtual DMX cable. Open DMX Studio or the DMX Editor in the same browser, set a universe\'s output to "Virtual DMX cable", and the universes these nodes are set to move them. Until something sends a universe, a built-in pattern plays on it.'),
+          ? 'The virtual nodes on this computer take Art-Net on UDP 6454 — send it to 127.0.0.2 (their own address here; 127.0.0.1 may belong to the fixture simulator) or broadcast it — and sACN on its multicast groups. In DMX Studio: Setup → universe output Art-Net, host 127.0.0.2. Until a console sends a universe, a built-in pattern plays on it; after that, a port that loses its sender shows its own signal-loss behaviour.'
+          : 'Demo mode: the virtual nodes in this page follow the Virtual DMX cable. Open DMX Studio or the DMX Editor in the same browser, set a universe\'s output to "Virtual DMX cable", and the universes these nodes are set to move them. Until something sends a universe, a built-in pattern plays on it; after that, a port that loses its sender shows its own signal-loss behaviour.'),
         real ? h('p', { class: 'note' }, `${real} real device${real > 1 ? 's are' : ' is'} not shown here: a real node drives real outputs, there is nothing to simulate.`) : null),
       winches.length ? h('div', { class: 'box' }, h('h4', null, `Kinetic winches (${winches.length})`, h('span', { class: 'spacer' }), h('span', { class: 'hint' }, 'orange mark = target · grey marks = travel limits')), h('canvas', { id: 'simWinch', style: 'width:100%;height:440px;display:block;border-radius:6px' })) : null,
       pix.map(d => h('div', { class: 'box' }, h('h4', null, `${d.config?.name || d.id}`, h('span', { class: 'hint' }, `${d.info.model} · pixel node`)), h('canvas', { dataset: { sim: d.id }, style: 'width:100%;height:120px;display:block;border-radius:6px' }))),
-      !virt.length ? h('p', { class: 'note' }, 'No virtual winch or pixel node is in the list. Start the manager with its virtual fleet (npm start) or open the demo.') : null);
+      dmx.map(d => h('div', { class: 'box' }, h('h4', null, `${d.config?.name || d.id}`, h('span', { class: 'hint' }, `${d.info.model} · eDMX node · what each port sends on its DMX line`)), h('canvas', { dataset: { dmx: d.id }, style: 'width:100%;height:200px;display:block;border-radius:6px' }))),
+      !virt.length ? h('p', { class: 'note' }, 'No virtual winch, pixel node or eDMX node is in the list. Start the manager with its virtual fleet (npm start) or open the demo.') : null);
   }
-  if (!timer) { timer = setInterval(poll, 66); poll(); const loop = () => { raf = requestAnimationFrame(loop); const devsNow = getDevs(), wc = pane.querySelector('#simWinch'); if (wc) drawWinches(wc, devsNow.filter(d => d.info.type === 'winch' && d.info.virtual)); pane.querySelectorAll('canvas[data-sim]').forEach(cv => { const d = devsNow.find(x => x.id === cv.dataset.sim); if (d) drawStrips(cv, d); }); }; loop(); }
+  if (!timer) { timer = setInterval(poll, 66); poll(); const loop = () => { raf = requestAnimationFrame(loop); const devsNow = getDevs(), wc = pane.querySelector('#simWinch'); if (wc) drawWinches(wc, devsNow.filter(d => d.info.type === 'winch' && d.info.virtual)); pane.querySelectorAll('canvas[data-sim]').forEach(cv => { const d = devsNow.find(x => x.id === cv.dataset.sim); if (d) drawStrips(cv, d); }); pane.querySelectorAll('canvas[data-dmx]').forEach(cv => { const d = devsNow.find(x => x.id === cv.dataset.dmx); if (d) drawDmx(cv, d); }); }; loop(); }
 }
 /** leave the tab: stop reading frames */
 export function stopSim() { clearInterval(timer); timer = 0; cancelAnimationFrame(raf); frames.clear(); }

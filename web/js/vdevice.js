@@ -82,14 +82,44 @@ export class VDevice {
   config() { return JSON.parse(JSON.stringify(this.cfg)); }
   setConfig(patch) { this.cfg = merge(this.cfg, patch); return this.config(); }
   /** a received DMX frame (real traffic); the simulator's own traffic stops for that universe for two seconds */
-  feed(universe, data, real = true) { let r = this.rx.get(universe); if (!r) this.rx.set(universe, r = { n: 0, fps: 0, level: 0, real: 0, data: null }); r.n++; r.data = data; if (real) r.real = this.t; let s = 0; for (let i = 0; i < data.length; i += 8) s += data[i]; r.level = s / (data.length / 8) / 255; }
+  /** source: who sent it (an Art-Net sender address, an sACN source name, "Virtual DMX cable"); an eDMX port merges the
+   *  sources of its universe (HTP: the highest value per channel; LTP: the latest change per channel) */
+  feed(universe, data, real = true, source = real ? 'network' : 'built-in pattern') {
+    let r = this.rx.get(universe); if (!r) this.rx.set(universe, r = { n: 0, fps: 0, level: 0, real: 0, data: null, src: new Map(), ltp: new Uint8Array(512) });
+    r.n++; r.data = data; if (real) r.real = this.t;
+    let s = 0; for (let i = 0; i < data.length; i += 8) s += data[i]; r.level = s / (data.length / 8) / 255;
+    let x = r.src.get(source); if (!x) r.src.set(source, x = { data: new Uint8Array(512), at: 0, n: 0, fps: 0, real });
+    for (let i = 0; i < 512; i++) { const v = data[i] || 0; if (v !== x.data[i] || !x.at) r.ltp[i] = v; x.data[i] = v; }   // LTP: what changed last wins
+    x.at = this.t; x.n++;
+  }
+  /** the live sources of a universe: sent something in the last 2.5 s (the built-in pattern only while no real source does) */
+  liveSources(universe) {
+    const r = this.rx.get(universe); if (!r) return [];
+    const live = [...r.src.entries()].filter(([, x]) => this.t - x.at < 2.5);
+    return live.some(([, x]) => x.real) ? live.filter(([, x]) => x.real) : live;
+  }
+  /** what an eDMX port sends on its DMX line now: { state: live|hold|blackout|test|input|off, out: Uint8Array(512) } */
+  edmxOut(i) {
+    const p = this.cfg.ports[i], st = (this.portState = this.portState || []), mem = st[i] || (st[i] = { out: new Uint8Array(512), state: 'off' });
+    if (!p || !p.enabled || (this.bootAt && this.t < this.bootAt)) { mem.out.fill(0); mem.state = 'off'; return mem; }
+    if (p.dir === 'in') { mem.out.fill(0); mem.state = 'input'; return mem; }
+    const pat = this.pattern[i] || (this.cfg.identify && Math.floor(this.t * 3) % 2 ? 'white' : null);
+    if (pat) { const k = Math.floor(this.t * 8) % 512;
+      for (let c = 0; c < 512; c++) mem.out[c] = pat === 'white' ? 255 : pat === 'red' ? (c % 3 === 0 ? 255 : 0) : pat === 'green' ? (c % 3 === 1 ? 255 : 0) : pat === 'blue' ? (c % 3 === 2 ? 255 : 0) : pat === 'chase' ? (c === k ? 255 : 0) : Math.round((c * 4 + this.t * 60) % 256);
+      mem.state = 'test'; return mem; }
+    const live = this.liveSources(p.universe), r = this.rx.get(p.universe);
+    if (live.length) { if (p.merge === 'ltp' || live.length === 1) mem.out.set(live.length === 1 ? live[0][1].data : r.ltp); else { mem.out.fill(0); for (const [, x] of live) for (let c = 0; c < 512; c++) if (x.data[c] > mem.out[c]) mem.out[c] = x.data[c]; } mem.state = 'live'; }
+    else if (p.onLoss === 'blackout') { mem.out.fill(0); mem.state = 'blackout'; } else mem.state = mem.state === 'off' ? 'blackout' : 'hold';
+    return mem;
+  }
   tick(dt) {                                                    // dt in seconds
     this.t += dt; this.up += dt;
     if (this.bootAt && this.t < this.bootAt) return; this.bootAt = 0;
     const used = universesOf(this.type, this.cfg);
     if (this.sim) { this._acc = (this._acc || 0) + dt; while (this._acc >= 0.025) { this._acc -= 0.025;               // stand-in controller: 40 frames a second
-      for (const u of new Set(used.map(x => x.universe))) { const r = this.rx.get(u); if (r && this.t - r.real < 2) continue; const d = new Uint8Array(512), ph = this.t * 0.6 + u; for (let i = 0; i < 512; i++) d[i] = 128 + 127 * Math.sin(ph + Math.floor(i / 3) * 0.12 + (i % 3) * 2.1);   /* a slow rainbow when read as RGB pixels */ if (this.type === 'winch' && u === this.cfg.universe) { const v = Math.round((0.5 + 0.5 * Math.sin(this.t * 0.25 + this.cfg.address)) * 65535); d[this.cfg.address - 1] = v >> 8; d[this.cfg.address] = v & 255; } this.feed(u, d, false); } } }
-    this._s = (this._s || 0) + dt; if (this._s >= 1) { for (const r of this.rx.values()) { r.fps = Math.round(r.n / this._s); r.n = 0; } this._s = 0; }
+      for (const u of new Set(used.map(x => x.universe))) { const r = this.rx.get(u); if (r && r.real) continue;   /* once real data has arrived the pattern stays off: what follows is the device's own signal-loss behaviour */ const d = new Uint8Array(512), ph = this.t * 0.6 + u; for (let i = 0; i < 512; i++) d[i] = 128 + 127 * Math.sin(ph + Math.floor(i / 3) * 0.12 + (i % 3) * 2.1);   /* a slow rainbow when read as RGB pixels */ if (this.type === 'winch' && u === this.cfg.universe) { const v = Math.round((0.5 + 0.5 * Math.sin(this.t * 0.25 + this.cfg.address)) * 65535); d[this.cfg.address - 1] = v >> 8; d[this.cfg.address] = v & 255; } this.feed(u, d, false); } } }
+    this._s = (this._s || 0) + dt; if (this._s >= 1) { for (const r of this.rx.values()) { r.fps = Math.round(r.n / this._s); r.n = 0; for (const x of r.src.values()) { x.fps = Math.round(x.n / this._s); x.n = 0; } } this._s = 0; }
+    if (this.type === 'edmx') this.cfg.ports.forEach((p, i) => this.edmxOut(i));
     let load = 0.2;
     if (this.type === 'winch') {
       const c = this.cfg, r = this.rx.get(c.universe), span = c.travel.max - c.travel.min;
@@ -107,12 +137,16 @@ export class VDevice {
   }
   /** What the device is doing right now, for a simulator view (virtual devices only; real firmware has no such call):
    *   winch { type, position, target, speed, min, max, manual, pixels: Uint8Array rgb… }   mm and mm/s
-   *   pixel { type, ports: [{ enabled, pixels: Uint8Array rgb… }] } */
+   *   pixel { type, ports: [{ enabled, pixels: Uint8Array rgb… }] }
+   *   edmx  { type, ports: [{ enabled, dir, universe, merge, onLoss, rate, state, out: Uint8Array(512), sources: [{ name, fps }] }] }   state: live|hold|blackout|test|input|off */
   frame() {
     const c = this.cfg, data = u => { const r = this.rx.get(u); return r && r.fps > 0 ? r.data : null; }, off = this.bootAt && this.t < this.bootAt;
     const blink = c.identify && Math.floor(this.t * 3) % 2 ? 'white' : null;                       // identify: the output flashes
     if (this.type === 'winch') return { type: 'winch', position: this.pos, target: this.target, speed: this.vel, min: c.travel.min, max: c.travel.max, manual: this.jog != null,
       pixels: c.pixel.enabled && !off ? renderPixels({ pixels: c.pixel.pixels, chip: c.pixel.chip, universe: c.pixel.universe }, data, blink, this.t) : new Uint8Array(0) };
+    if (this.type === 'edmx') return { type: 'edmx', ports: c.ports.map((p, i) => { const m = this.edmxOut(i), r = this.rx.get(p.universe);
+      return { enabled: p.enabled, dir: p.dir, universe: p.universe, merge: p.merge, onLoss: p.onLoss, rate: p.rate, state: m.state, out: Uint8Array.from(m.out),
+        sources: p.dir === 'in' ? [] : this.liveSources(p.universe).map(([name, x]) => ({ name, fps: x.fps })) }; }) };
     if (this.type === 'pixel') return { type: 'pixel', ports: c.ports.map((p, i) => ({ enabled: p.enabled, pixels: p.enabled && !off ? renderPixels(p, data, this.pattern[i] || blink, this.t) : new Uint8Array(0) })) };
     return { type: this.type };
   }
@@ -128,7 +162,7 @@ export class VDevice {
     const c = this.cfg, rxOf = u => { const r = this.rx.get(u); return r ? { fps: r.fps, level: Math.round(r.level * 100) } : { fps: 0, level: 0 }; };
     const s = { id: this.id, uptime: Math.round(this.up), tempC: Math.round(this.temp * 10) / 10, vin: Math.round(this.vin * 10) / 10, heap: 180000 - Math.round(this.up % 60) * 40, rebooting: !!this.bootAt,
       net: { ip: c.net.ip, link: '100M', rssi: null }, identify: !!c.identify, alarms: this.bootAt ? [] : this.alarms() };
-    if (this.type === 'edmx') s.ports = c.ports.map((p, i) => ({ ...rxOf(p.universe), enabled: p.enabled, universe: p.universe, test: this.pattern[i] || null }));
+    if (this.type === 'edmx') s.ports = c.ports.map((p, i) => ({ ...rxOf(p.universe), enabled: p.enabled, universe: p.universe, test: this.pattern[i] || null, sources: p.dir === 'in' ? 0 : this.liveSources(p.universe).length }));
     if (this.type === 'pixel') s.ports = c.ports.map((p, i) => { const r = rxOf(p.universe); return { ...r, enabled: p.enabled, universe: p.universe, universes: pixelUniverses(p), pixels: p.pixels, amps: Math.round(p.pixels * (CHIPS[p.chip] || 3) * 0.02 * (r.level / 100) * (p.limit / 100) * 10) / 10, test: this.pattern[i] || null }; });
     if (this.type === 'winch') Object.assign(s, { position: Math.round(this.pos), target: Math.round(this.target), speed: Math.round(this.vel), moving: Math.abs(this.vel) > 1, homed: this.homed, load: Math.round((0.25 + Math.abs(this.vel) / c.speedMax * 0.6) * 100), dmx: rxOf(c.universe), pixel: c.pixel.enabled ? rxOf(c.pixel.universe) : null });
     if (this.type === 'hub') Object.assign(s, { playback: { ...this.play, t: Math.round(this.play.t * 10) / 10 }, storage: { used: c.presets.reduce((x, p) => x + p.seconds * 44 * 512 * c.record.universes.length, 0), total: 4e9 }, rx: c.record.universes.map(u => ({ universe: u, ...rxOf(u) })) });
